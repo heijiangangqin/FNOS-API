@@ -1,0 +1,14 @@
+{
+  "name": "fnos-api",
+  "version": "1.0.0",
+  "description": "FNOS-API - trim-cli REST API wrapper",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5"
+  }
+}

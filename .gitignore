@@ -1,0 +1,12 @@
+# IDE缓存
+.idea/
+.vscode/
+*.log
+# 依赖文件夹
+node_modules/
+venv/
+# 编译产物
+dist/
+build/
+# 系统文件
+.DS_Store

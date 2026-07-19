@@ -1,0 +1,30 @@
+#!/bin/bash
+
+CONFIG_DIR="${TRIM_PKGVAR}/data"
+CONFIG_FILE="${CONFIG_DIR}/config.json"
+
+mkdir -p "${CONFIG_DIR}"
+
+cat > "${CONFIG_FILE}" << 'CONFEOF'
+{
+  "nas_host": "WIZARD_NAS_HOST",
+  "nas_port": "WIZARD_NAS_PORT",
+  "nas_scheme": "WIZARD_NAS_SCHEME",
+  "nas_username": "WIZARD_NAS_USERNAME",
+  "nas_password": "WIZARD_NAS_PASSWORD",
+  "api_token": "WIZARD_API_TOKEN",
+  "allow_insecure_ws": "WIZARD_ALLOW_INSECURE_WS",
+  "tls_insecure": "WIZARD_TLS_INSECURE"
+}
+CONFEOF
+
+sed -i "s|WIZARD_NAS_HOST|${wizard_nas_host:-localhost}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_NAS_PORT|${wizard_nas_port:-5666}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_NAS_SCHEME|${wizard_nas_scheme:-auto}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_NAS_USERNAME|${wizard_nas_username:-}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_NAS_PASSWORD|${wizard_nas_password:-}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_API_TOKEN|${wizard_api_token:-fnosapi2024}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_ALLOW_INSECURE_WS|${wizard_allow_insecure_ws:-false}|g" "${CONFIG_FILE}"
+sed -i "s|WIZARD_TLS_INSECURE|${wizard_tls_insecure:-false}|g" "${CONFIG_FILE}"
+
+exit 0

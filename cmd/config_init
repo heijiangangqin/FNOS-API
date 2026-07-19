@@ -1,0 +1,67 @@
+#!/bin/bash
+
+cat << 'FORMJSON'
+[
+    {
+        "stepTitle": "NAS 登录配置",
+        "items": [
+            {
+                "type": "text",
+                "field": "wizard_nas_host",
+                "label": "NAS 地址",
+                "initValue": "",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入 NAS 地址"
+                    }
+                ]
+            },
+            {
+                "type": "text",
+                "field": "wizard_nas_port",
+                "label": "WebSocket 端口",
+                "initValue": "5666",
+                "rules": []
+            },
+            {
+                "type": "text",
+                "field": "wizard_nas_username",
+                "label": "NAS 用户名",
+                "initValue": "",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入 NAS 用户名"
+                    }
+                ]
+            },
+            {
+                "type": "password",
+                "field": "wizard_nas_password",
+                "label": "NAS 密码",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入 NAS 密码"
+                    }
+                ]
+            },
+            {
+                "type": "password",
+                "field": "wizard_api_token",
+                "label": "API 访问令牌",
+                "initValue": "fnosapi2024",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请设置 API 访问令牌"
+                    }
+                ]
+            }
+        ]
+    }
+]
+FORMJSON
+
+exit 0

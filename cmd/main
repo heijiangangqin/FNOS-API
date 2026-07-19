@@ -1,0 +1,99 @@
+#!/bin/bash
+
+APP_DIR="${TRIM_APPDEST}/backend"
+DATA_DIR="${TRIM_PKGVAR}/data"
+PID_FILE="${DATA_DIR}/app.pid"
+LOG_FILE="${DATA_DIR}/app.log"
+
+ensure_dirs() { mkdir -p "${DATA_DIR}"; }
+get_pid() { [ -f "$PID_FILE" ] && cat "$PID_FILE"; }
+
+is_running() {
+    local pid=$(get_pid)
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
+    [ -f "$PID_FILE" ] && rm -f "$PID_FILE"
+    return 1
+}
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] main[$1]: $2" >> "$LOG_FILE"; }
+
+case $1 in
+start)
+    ensure_dirs
+    log "start" "Starting fnOS API service..."
+    is_running && log "start" "Already running" && exit 0
+
+    if [ ! -d "$APP_DIR" ]; then
+        log "start" "ERROR: APP_DIR not found: $APP_DIR"
+        exit 1
+    fi
+
+    if ! command -v node &>/dev/null; then
+        if command -v nodejs &>/dev/null; then
+            NODE=nodejs
+        else
+            log "start" "ERROR: node not found"
+            exit 1
+        fi
+    else
+        NODE=node
+    fi
+    log "start" "Node: $($NODE --version)"
+
+    cd "$APP_DIR"
+    log "start" "Working dir: $(pwd)"
+
+    export CONFIG_PATH="${DATA_DIR}/config.json"
+    export HOME="${TRIM_PKGVAR}"
+    export PORT=9932
+
+    # trim-cli 二进制路径
+    TRIM_CLI_BIN="${APP_DIR}/trim-cli-bin/trim-cli-linux-x64"
+    if [ -f "${TRIM_CLI_BIN}" ]; then
+        chmod +x "${TRIM_CLI_BIN}" 2>/dev/null
+        export TRIM_CLI_BIN
+        log "start" "trim-cli found: ${TRIM_CLI_BIN}"
+    else
+        # 回退：尝试 PATH 中的 trim-cli
+        if command -v trim-cli &>/dev/null; then
+            export TRIM_CLI_BIN="$(which trim-cli)"
+            log "start" "trim-cli from PATH: ${TRIM_CLI_BIN}"
+        else
+            log "start" "WARNING: trim-cli not found, API calls will fail"
+        fi
+    fi
+
+    log "start" "Starting server.js on port ${PORT}..."
+    nohup $NODE server.js >> "$LOG_FILE" 2>&1 &
+    PID=$!
+    echo $PID > "$PID_FILE"
+    log "start" "PID: $PID"
+
+    sleep 3
+    if kill -0 $PID 2>/dev/null; then
+        log "start" "Startup OK (PID: $PID)"
+        exit 0
+    else
+        log "start" "Startup FAILED"
+        tail -10 "$LOG_FILE" >> "$LOG_FILE" 2>/dev/null || true
+        exit 1
+    fi
+    ;;
+stop)
+    log "stop" "Stopping..."
+    if is_running; then
+        kill $(get_pid) 2>/dev/null || true
+        sleep 2
+        kill -9 $(get_pid) 2>/dev/null || true
+        rm -f "$PID_FILE"
+        log "stop" "Stopped"
+    fi
+    exit 0
+    ;;
+status)
+    is_running && exit 0 || exit 3
+    ;;
+*)
+    exit 1
+    ;;
+esac

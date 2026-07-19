@@ -1,0 +1,9 @@
+#!/bin/bash
+
+DATA_DIR="${TRIM_PKGVAR}/data"
+
+if [ "${wizard_data_action}" = "delete" ]; then
+    rm -rf "${DATA_DIR}"
+fi
+
+exit 0
