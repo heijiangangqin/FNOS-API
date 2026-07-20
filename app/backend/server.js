@@ -295,9 +295,26 @@ app.get('/api/config', authMiddleware, wrap(async () => {
   return safe;
 }));
 
+// ==================== Auto Login ====================
+async function autoLogin() {
+  const username = config.nas_username;
+  const password = config.nas_password;
+  if (username && password) {
+    try {
+      await cli.login(username, password);
+      console.log('[FNOS-API] Auto login success: ' + username);
+    } catch (e) {
+      console.error('[FNOS-API] Auto login failed: ' + (e.error || e.message));
+    }
+  } else {
+    console.log('[FNOS-API] No credentials configured, skip auto login');
+  }
+}
+
 // ==================== Start ====================
 app.listen(PORT, '0.0.0.0', () => {
   console.log('[FNOS-API] Server running on port ' + PORT);
   console.log('[FNOS-API] trim-cli binary: ' + cli.binPath);
   console.log('[FNOS-API] NAS target: ' + cli.host + ':' + (cli.port || 'auto'));
+  autoLogin();
 });

@@ -49,7 +49,7 @@ tar -czf fnos-api_1.0.0_x86_64.fpk manifest ICON.PNG ICON_256.PNG app config cmd
 
 ## API 调用
 
-所有接口（除登录外）需在请求头携带 Token：
+服务启动时会自动使用安装时配置的 NAS 账号密码完成登录，所有接口只需在请求头携带 API Token：
 
 ```bash
 curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/system/info
@@ -58,13 +58,11 @@ curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/system/info
 ### 示例
 
 ```bash
-# 登录
-curl -X POST http://<NAS-IP>:9932/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"your-password"}'
-
 # 获取系统信息
 curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/system/info
+
+# CPU 监控
+curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/monitor/cpu
 
 # 获取存储概览
 curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/storage/overview
@@ -77,6 +75,21 @@ curl -X POST http://<NAS-IP>:9932/api/download/add-uri \
   -H "Authorization: Bearer fnosapi2024" \
   -H "Content-Type: application/json" \
   -d '{"uri":"https://example.com/file.zip","saveDir":"/vol1/downloads"}'
+```
+
+### 接口测试
+
+项目提供了 `demo/` 目录，每个接口一个独立测试脚本：
+
+```bash
+cd demo
+# 编辑 config.ini 填入 NAS 地址和 API Token
+pip install requests
+
+# 测试单个接口
+python system/cpu.py
+python storage/overview.py
+python docker/container_ls.py
 ```
 
 ## 项目结构
@@ -105,9 +118,22 @@ FNOS-API/
 │   ├── config_callback   # 配置保存回调
 │   ├── upgrade_*         # 升级脚本
 │   └── uninstall_*       # 卸载脚本
-└── wizard/               # 安装/卸载向导
-    ├── install           # 安装向导表单
-    └── uninstall         # 卸载确认与数据保留选项
+├── wizard/               # 安装/卸载向导
+│   ├── install           # 安装向导表单
+│   └── uninstall         # 卸载确认与数据保留选项
+└── demo/                 # 接口测试脚本（每个接口一个文件）
+    ├── config.ini        # 测试配置（NAS 地址 + API Token）
+    ├── common.py         # 公共模块
+    ├── auth/             # 认证接口
+    ├── system/           # 系统监控接口
+    ├── file/             # 文件管理接口
+    ├── app/              # 应用中心接口
+    ├── download/         # 下载管理接口
+    ├── logger/           # 日志中心接口
+    ├── user/             # 用户管理接口
+    ├── storage/          # 存储管理接口
+    ├── docker/           # Docker 管理接口
+    └── config/           # 配置查询接口
 ```
 
 ## 技术栈
@@ -115,11 +141,13 @@ FNOS-API/
 - **后端**: Node.js + Express
 - **CLI 封装**: trim-cli（多平台二进制）
 - **前端**: 原生 HTML/CSS
-- **运行环境**: 飞牛 fnOS 0.9.0+
+- **运行环境**: 飞牛 fnOS 1.1.3107+
 
 ## 注意事项
 
 - 服务运行端口：`9932`
+- 服务启动时自动使用配置的 NAS 账号密码登录，无需手动调用登录接口
+- 所有 API 请求只需携带 `Authorization: Bearer <api_token>` 即可
 - trim-cli 二进制支持：linux-x64、linux-arm64、darwin-x64、darwin-arm64、windows-x64
 - 安装后服务自动启动，可通过飞牛应用中心管理启停
 - 修改配置后需重启服务生效
