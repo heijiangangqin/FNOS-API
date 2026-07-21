@@ -16,5 +16,5 @@ service_port          = 9932
 checkport             = true
 ctl_stop              = true
 install_type          =
-install_dep_apps      =
+install_dep_apps      = nodejs_v22
 changelog             = 1.0.0：Initial version

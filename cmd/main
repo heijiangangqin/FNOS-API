@@ -28,17 +28,20 @@ start)
         exit 1
     fi
 
-    if ! command -v node &>/dev/null; then
-        if command -v nodejs &>/dev/null; then
-            NODE=nodejs
-        else
-            log "start" "ERROR: node not found"
-            exit 1
-        fi
-    else
-        NODE=node
+    export PATH=/var/apps/nodejs_v22/target/bin:$PATH
+
+    NODE=""
+    if command -v node &>/dev/null; then
+        NODE="$(command -v node)"
+    elif command -v nodejs &>/dev/null; then
+        NODE="$(command -v nodejs)"
     fi
-    log "start" "Node: $($NODE --version)"
+    if [ -z "$NODE" ]; then
+        log "start" "ERROR: node not found"
+        log "start" "PATH=$PATH"
+        exit 1
+    fi
+    log "start" "Node: $NODE ($($NODE --version 2>/dev/null || echo 'version unknown'))"
 
     cd "$APP_DIR"
     log "start" "Working dir: $(pwd)"
