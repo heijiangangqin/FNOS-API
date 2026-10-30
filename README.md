@@ -1,5 +1,6 @@
 # FNOS-API
 已上线V2 版本 基于飞牛最新的skills，需要飞牛 1.2.0800 才可用
+
 将 [trim-cli](https://github.com/nicehash/trim-cli) 命令行工具封装为 RESTful API 服务的飞牛(fnOS)原生应用，支持文件管理、存储管理、Docker 管理、下载任务、日志中心、用户管理、系统监控等全部功能。
 
 ## 功能概览
