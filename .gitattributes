@@ -1,0 +1,5 @@
+# 仓库内统一 LF：pkg/cmd/* 是 Linux 启动脚本，带 CRLF 会导致命令找不到
+* text=auto eol=lf
+pkg/cmd/* text eol=lf
+*.png binary
+*.fpk binary

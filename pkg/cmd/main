@@ -1,0 +1,96 @@
+#!/bin/bash
+# fnos-api-gw 服务控制脚本
+# start / stop / status
+
+APP_DIR="${TRIM_APPDEST}/backend"
+DATA_DIR="${TRIM_PKGVAR}/data"
+SESSION_DIR="${DATA_DIR}/trim-cli"
+PID_FILE="${DATA_DIR}/app.pid"
+LOG_FILE="${DATA_DIR}/app.log"
+PORT=9932
+
+ensure_dirs() {
+    mkdir -p "${DATA_DIR}" "${SESSION_DIR}"
+    touch "${LOG_FILE}"
+    chmod 700 "${SESSION_DIR}" 2>/dev/null || true
+}
+
+get_pid() { [ -f "$PID_FILE" ] && cat "$PID_FILE"; }
+
+is_running() {
+    local pid
+    pid=$(get_pid)
+    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
+    [ -f "$PID_FILE" ] && rm -f "$PID_FILE"
+    return 1
+}
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] main[$1]: $2" >> "$LOG_FILE"; }
+
+case $1 in
+start)
+    ensure_dirs
+    if is_running; then
+        log "start" "already running (pid $(get_pid))"
+        exit 0
+    fi
+
+    if [ ! -x "${APP_DIR}/fnos-api-gw" ]; then
+        chmod +x "${APP_DIR}/fnos-api-gw" 2>/dev/null || true
+    fi
+    if [ ! -x "${APP_DIR}/trim-cli" ]; then
+        chmod +x "${APP_DIR}/trim-cli" 2>/dev/null || true
+    fi
+
+    if [ ! -f "${APP_DIR}/fnos-api-gw" ]; then
+        log "start" "ERROR: 主程序不存在 ${APP_DIR}/fnos-api-gw"
+        exit 1
+    fi
+    if [ ! -f "${APP_DIR}/trim-cli" ]; then
+        log "start" "ERROR: trim-cli 不存在 ${APP_DIR}/trim-cli"
+        exit 1
+    fi
+
+    cd "${APP_DIR}" || exit 1
+    export DATA_DIR
+    export PORT
+    export TRIM_CLI_BIN="${APP_DIR}/trim-cli"
+    export HOME="${DATA_DIR}"
+
+    log "start" "启动 fnos-api-gw，端口 ${PORT}"
+    nohup "${APP_DIR}/fnos-api-gw" >> "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+    log "start" "pid $(get_pid)"
+
+    sleep 2
+    if is_running; then
+        log "start" "启动成功"
+        exit 0
+    fi
+    log "start" "启动失败，末尾日志："
+    tail -20 "$LOG_FILE" >> "$LOG_FILE" 2>/dev/null || true
+    exit 1
+    ;;
+stop)
+    if is_running; then
+        PID=$(get_pid)
+        log "stop" "停止 pid ${PID}"
+        kill "$PID" 2>/dev/null || true
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            kill -0 "$PID" 2>/dev/null || break
+            sleep 0.5
+        done
+        kill -9 "$PID" 2>/dev/null || true
+        rm -f "$PID_FILE"
+        log "stop" "已停止"
+    fi
+    exit 0
+    ;;
+status)
+    is_running && exit 0 || exit 3
+    ;;
+*)
+    echo "usage: $0 {start|stop|status}" >&2
+    exit 1
+    ;;
+esac

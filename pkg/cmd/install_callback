@@ -1,0 +1,44 @@
+#!/bin/bash
+# 安装后回调：把安装向导里填的访问令牌写进 config.json。
+#
+# 机制：飞牛的向导字段名会原样变成环境变量名（官方文档「用户向导 / 使用向导值」），
+# 所以 wizard/install 里 field=wizard_api_token 在这里就是 $wizard_api_token。
+# 注意这不是占位符替换——把 WIZARD_XXX 直接写进文件是不会被替换的。
+
+DATA_DIR="${TRIM_PKGVAR}/data"
+CONFIG_FILE="${DATA_DIR}/config.json"
+
+mkdir -p "${DATA_DIR}/trim-cli"
+chmod 700 "${DATA_DIR}/trim-cli" 2>/dev/null || true
+
+# 取向导值，去掉可能的换行与首尾空白
+TOKEN="${wizard_api_token:-}"
+TOKEN="$(printf '%s' "${TOKEN}" | tr -d '\r\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+
+# 安装时不再设置令牌：留空，应用启动后在页面上完成首次设置
+# （页面会随机生成一个，用户也可以自己改，之后在「设置」页随时查看与修改）
+if [ -n "${TOKEN}" ] && [ "${#TOKEN}" -lt 8 ]; then
+    TOKEN=""
+fi
+
+cat > "${CONFIG_FILE}" << CONFEOF
+{
+  "api_token": "${TOKEN}",
+  "nas_host": "localhost",
+  "nas_port": "5666",
+  "nas_scheme": "http",
+  "allow_insecure_http": true,
+  "tls_insecure": false,
+  "allow_passthrough": true,
+  "allow_media": false,
+  "request_timeout_sec": 60,
+  "long_timeout_sec": 300,
+  "profile": "default",
+  "ip_allowlist": []
+}
+CONFEOF
+
+chmod 600 "${CONFIG_FILE}" 2>/dev/null || true
+
+chown -R fnosapigw:fnosapigw "${DATA_DIR}" 2>/dev/null || true
+exit 0

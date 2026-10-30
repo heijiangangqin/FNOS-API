@@ -1,156 +1,167 @@
 # FNOS-API
 
-将 [trim-cli](https://github.com/nicehash/trim-cli) 命令行工具封装为 RESTful API 服务的飞牛(fnOS)原生应用，支持文件管理、存储管理、Docker 管理、下载任务、日志中心、用户管理、系统监控等全部功能。
+把飞牛（fnOS）自带的命令行工具 `trim-cli` 封装成 **HTTP 接口**的飞牛原生应用。
 
-## 功能概览
+装好之后，用浏览器、脚本或任何语言发一条请求，就能读系统状态、管文件和用户、控制应用与 Docker，不必登录 SSH。
 
-| 模块 | 接口 | 说明 |
-|------|------|------|
-| 认证 | `/api/auth/login` `/api/auth/logout` | NAS 登录/登出 |
-| 状态 | `/api/status` `/api/ls` `/api/search` | 快捷状态查询、文件浏览、搜索 |
-| 系统 | `/api/system/info` `/api/monitor/cpu` `/api/monitor/memory` | 系统信息与资源监控 |
-| 文件 | `/api/file/*` | 文件浏览、搜索、分享、上传、复制、移动、删除 |
-| 应用中心 | `/api/app/*` | 应用列表、安装、更新、启停、卸载 |
-| 下载 | `/api/download/*` | 下载任务管理（添加、暂停、恢复、删除、统计） |
-| 日志 | `/api/logger/*` | 日志查询、模块列表、清理、导出、归档 |
-| 用户 | `/api/user/*` | 用户/用户组 CRUD、权限管理、登录设备 |
-| 存储 | `/api/storage/*` | 存储池、磁盘、S.M.A.R.T.、挂载/卸载、扩容 |
-| Docker | `/api/docker/*` | 容器与镜像管理、Compose 列表 |
+- **170 个接口**，覆盖 `trim-cli` 的全部能力
+- 单文件二进制 + 网页设置页，无外部依赖
+- Bearer 令牌鉴权，支持 IP 白名单和请求日志
+- 通过飞牛应用中心安装，首次打开自动生成访问令牌
 
-## 安装方式
+![首次设置](screenshots/01-首次设置.png)
 
-### 方式一：下载 FPK 安装包
+## 截图
 
-前往 [Releases](https://github.com/heijiangangqin/FNOS-API/releases) 下载最新 `.fpk` 文件，在飞牛 NAS 应用中心手动安装。
+| 设置页 | 请求日志 |
+|---|---|
+| ![设置页](screenshots/02-设置页.png) | ![请求日志](screenshots/03-请求日志.png) |
 
-### 方式二：自行打包
+## 功能
 
-```bash
-git clone https://github.com/heijiangangqin/FNOS-API.git
-cd FNOS-API/app/backend
-npm install --production
-cd ../..
-tar -czf fnos-api_1.0.0_x86_64.fpk manifest ICON.PNG ICON_256.PNG app config cmd wizard
-```
+| 模块 | 接口数 | 能做什么 |
+|---|---:|---|
+| 文件 | 42 | 列目录、搜索、属性、复制移动改名、上传、压缩解压、改属主、ACL、回收站、收藏、团队空间、共享、下载链接 |
+| 系统 | 24 | 系统信息、版本、主机名、运行时长、卷、硬件、电源计划、原始请求透传 |
+| 存储 | 22 | 存储池、磁盘、S.M.A.R.T.、挂载卸载、建池、加盘换盘扩容、格式化 |
+| 监控 | 14 | CPU / 内存 / 网络 / 磁盘 / 进程 / 温度 |
+| Docker | 12 | 容器与镜像的查、建、启停、删除，Compose 列表 |
+| 下载 | 10 | 任务列表、添加（URL / 本地路径）、暂停恢复、重试、删除 |
+| 用户 | 9 | 用户增删改、改名、改密、管理员、冻结解冻、用户组与成员 |
+| 应用 | 7 | 应用列表与状态、启停、检查更新 |
+| 日志 | 7 | 系统日志查询、模块字典、导出、清空、调试日志采集 |
+| 其它 | 23 | 认证授权、设备信息、相册、百度网盘、电源、请求日志、通用命令通道 |
 
-将生成的 `fnos-api_1.0.0_x86_64.fpk` 上传到飞牛 NAS 安装即可。
+高风险操作（建存储池、加盘换盘扩容、清空回收站、清空日志）需要显式传 `"confirm": true`。
 
-## 安装配置
+## 安装
 
-安装向导会要求填写以下信息：
+1. 到 [Releases](https://github.com/heijiangangqin/FNOS-API/releases) 下载最新的 `.fpk`
+2. 飞牛 NAS → 应用中心 → 手动安装，选择该文件
+3. 安装过程不需要填任何参数
 
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| NAS 地址 | 飞牛 NAS 的 IP 或域名 | `localhost` |
-| WebSocket 端口 | NAS WebSocket 端口 | `5666` |
-| NAS 用户名 | 登录用户名 | - |
-| NAS 密码 | 登录密码 | - |
-| API 访问令牌 | 调用 API 时的 Bearer Token | `fnosapi2024` |
+## 首次使用
 
-## API 调用
+安装后在飞牛桌面打开应用，页面会自动生成一个访问令牌并预填好：
 
-服务启动时会自动使用安装时配置的 NAS 账号密码完成登录，所有接口只需在请求头携带 API Token：
+![首次设置](screenshots/01-首次设置.png)
 
-```bash
-curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/system/info
-```
+点「保存并进入」即可。这个令牌既是进入网页的密码，也是调用接口的 Bearer 令牌，之后可以在「设置」页查看或修改。
 
-### 示例
+设置页还需要完成一次**飞牛 OAuth 授权**（点「获取授权链接」→ 浏览器同意 → 粘贴 code），授权完成后接口才能读到真实数据。未授权时业务接口返回 `428`。
+
+## 认证
 
 ```bash
-# 获取系统信息
-curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/system/info
+# 方式一：请求头
+curl -H "Authorization: Bearer 你的令牌" http://NAS地址:9932/api/system/host-name
 
-# CPU 监控
-curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/monitor/cpu
-
-# 获取存储概览
-curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/storage/overview
-
-# Docker 容器列表
-curl -H "Authorization: Bearer fnosapi2024" http://<NAS-IP>:9932/api/docker/container/ls
-
-# 添加下载任务
-curl -X POST http://<NAS-IP>:9932/api/download/add-uri \
-  -H "Authorization: Bearer fnosapi2024" \
-  -H "Content-Type: application/json" \
-  -d '{"uri":"https://example.com/file.zip","saveDir":"/vol1/downloads"}'
+# 方式二：查询参数（方便浏览器直接打开）
+http://NAS地址:9932/api/system/host-name?token=你的令牌
 ```
 
-### 接口测试
+返回统一结构：
 
-项目提供了 `demo/` 目录，每个接口一个独立测试脚本：
+```json
+{"success": true, "data": { ... }}
+{"success": false, "error": "给人看的一句话", "errmsg": "上游原始报错", "errno": 4100}
+```
+
+判断成败看 `success`，不要只看 HTTP 状态码。
+
+状态码约定：
+
+| 码 | 含义 |
+|---|---|
+| 200 | 成功 |
+| 400 | 参数缺失或非法 |
+| 401 | 令牌不匹配 |
+| 403 | 来源 IP 不在白名单 |
+| 404 | 目标不存在 |
+| 409 | 状态冲突（如 SSH 已是目标状态、任务已完成） |
+| 428 | 需要先完成首次设置 / 飞牛 OAuth 授权 |
+
+## 快速上手
 
 ```bash
-cd demo
-# 编辑 config.ini 填入 NAS 地址和 API Token
-pip install requests
+# 系统信息
+curl -H "Authorization: Bearer $TOKEN" http://192.168.1.10:9932/api/system/info
 
-# 测试单个接口
-python system/cpu.py
-python storage/overview.py
-python docker/container_ls.py
+# 列目录
+curl -H "Authorization: Bearer $TOKEN" "http://192.168.1.10:9932/api/file/ls?path=/vol1"
+
+# 新建目录
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+     -d '{"path":"/vol1/1000/测试目录"}' \
+     http://192.168.1.10:9932/api/file/mkdir
 ```
 
-## 项目结构
+完整接口清单见 [`docs/使用文档.html`](docs/使用文档.html)。
 
-```
-FNOS-API/
-├── manifest              # 应用清单（名称、版本、架构等）
-├── ICON.PNG              # 应用图标
-├── ICON_256.PNG          # 大图标
-├── app/
-│   ├── backend/          # Node.js 后端
-│   │   ├── server.js     # Express 服务主文件
-│   │   ├── trimcli.js    # trim-cli 封装模块
-│   │   ├── trim-cli-bin/ # 多平台 trim-cli 二进制
-│   │   └── package.json
-│   ├── frontend/         # 前端欢迎页
-│   └── ui/               # 飞牛桌面图标与配置
-├── config/
-│   ├── privilege         # 运行权限配置
-│   └── resource          # 资源配置
-├── cmd/                  # 生命周期脚本
-│   ├── main              # 服务启停主脚本
-│   ├── install_init      # 安装初始化
-│   ├── install_callback  # 安装回调（生成配置文件）
-│   ├── config_init       # 配置表单定义
-│   ├── config_callback   # 配置保存回调
-│   ├── upgrade_*         # 升级脚本
-│   └── uninstall_*       # 卸载脚本
-├── wizard/               # 安装/卸载向导
-│   ├── install           # 安装向导表单
-│   └── uninstall         # 卸载确认与数据保留选项
-└── demo/                 # 接口测试脚本（每个接口一个文件）
-    ├── config.ini        # 测试配置（NAS 地址 + API Token）
-    ├── common.py         # 公共模块
-    ├── auth/             # 认证接口
-    ├── system/           # 系统监控接口
-    ├── file/             # 文件管理接口
-    ├── app/              # 应用中心接口
-    ├── download/         # 下载管理接口
-    ├── logger/           # 日志中心接口
-    ├── user/             # 用户管理接口
-    ├── storage/          # 存储管理接口
-    ├── docker/           # Docker 管理接口
-    └── config/           # 配置查询接口
+## 与上一版（v1）的区别
+
+本仓库早期是 **Node.js** 实现，v2 是**用 Go 重写**，两者不兼容：
+
+| | v1（2026-07） | v2（当前） |
+|---|---|---|
+| 实现 | Node.js 脚本 + node 运行时 | Go 单文件二进制，无运行时依赖 |
+| 认证 | 复用 NAS 账号登录 | 独立的 Bearer 令牌，可在页面查看修改 |
+| 网页 | 多页控制台（概览/文件/应用/下载/用户/日志/调试） | 只保留「设置」页，其余能力走接口 |
+| 授权 | 账号密码 | 飞牛 OAuth（设备码） |
+| 接口 | 约 60 个 | 170 个，覆盖 trim-cli 全部子命令 |
+
+## 构建
+
+需要 Go 1.21+ 和 Python 3.8+：
+
+```bash
+# 打 FPK 安装包（同时交叉编译 linux/amd64 二进制）
+python build.py
+# 产物：dist/fnos-api-gw-<版本>.fpk
 ```
 
-## 技术栈
+只用二进制、不打应用包：
 
-- **后端**: Node.js + Express
-- **CLI 封装**: trim-cli（多平台二进制）
-- **前端**: 原生 HTML/CSS
-- **运行环境**: 飞牛 fnOS 1.1.3107+
+```bash
+cd src && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o ../fnos-api-gw .
+```
 
-## 注意事项
+`trim-cli` 二进制需自行放入 `pkg/backend/`（不同 fnOS 版本的 CLI 不通用，建议从目标机器上取）。
 
-- 服务运行端口：`9932`
-- 服务启动时自动使用配置的 NAS 账号密码登录，无需手动调用登录接口
-- 所有 API 请求只需携带 `Authorization: Bearer <api_token>` 即可
-- trim-cli 二进制支持：linux-x64、linux-arm64、darwin-x64、darwin-arm64、windows-x64
-- 安装后服务自动启动，可通过飞牛应用中心管理启停
-- 修改配置后需重启服务生效
+## 目录结构
+
+```
+src/              Go 源码（main / api / routes / trimcli / config / pty / reqlog / ui 内嵌）
+src/ui/index.html 设置页（单文件，无外部依赖）
+pkg/cmd/          应用生命周期脚本（install / upgrade / main / uninstall）
+pkg/config/       权限与资源配置
+icons/            应用图标
+build.py          打包脚本
+docs/             使用文档、快速上手、测试报告
+tests/            接口回归脚本（Python 标准库）
+```
+
+## 测试
+
+`tests/` 下两个脚本，在本机对已授权的实例跑：
+
+```bash
+NAS_PASS=你的NAS密码 python3 tests/full_test.py   # 170 个接口 + 安全语义，输出 JSON
+NAS_PASS=你的NAS密码 python3 tests/func_test.py   # 用户/文件/下载的增改删真实链路
+```
+
+最近一次结果见 [`docs/测试报告.html`](docs/测试报告.html)：**245 项，0 失败**（17 项为测试机硬件缺失导致的环境限制）。
+
+## 已知限制
+
+- 依赖目标机器上 trim-cli 的版本，接口以 fnOS 1.2.0800 实测
+- 存储池相关操作（建池、加盘、换盘、扩容）会重建阵列，未在自动化测试中执行
+- `file/cp` `file/mv` 的第二个参数是**目标目录**，不是文件路径
+- 应用中心不支持用命令行安装带向导的包，本应用已去掉向导，可命令行安装
+
+## 免责声明
+
+第三方应用，与飞牛官方无关。涉及数据删除、存储池变更的接口请先在测试机上验证。使用风险自负。
 
 ## License
 

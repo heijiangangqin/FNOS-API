@@ -1,0 +1,6 @@
+#!/bin/bash
+# 按向导选择决定是否清除应用数据
+if [ "${wizard_data_action}" = "delete" ]; then
+    rm -rf "${TRIM_PKGVAR}/data"
+fi
+exit 0

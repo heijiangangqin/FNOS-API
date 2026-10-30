@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FNOS API 网关</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#fff; --ink:#16202f; --muted:#6b7a90; --line:#e6ebf3;
+    --accent:#2f6fed; --ok:#0d7a3d; --warn:#a35b00; --err:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.7 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  code{background:#eef2f8;padding:1px 6px;border-radius:5px;font-size:12.4px;
+       font-family:ui-monospace,Consolas,monospace}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.6px}
+
+  /* ---------- 登录门 ---------- */
+  #gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;
+        justify-content:center;padding:24px;z-index:40}
+  .gate-card{width:100%;max-width:392px;background:var(--card);border:1px solid var(--line);
+             border-radius:16px;padding:30px 28px;box-shadow:0 8px 30px rgba(16,32,64,.08)}
+  .gate-card h1{font-size:19px;margin:0 0 4px}
+  .gate-card .lead{color:var(--muted);font-size:13px;margin:0 0 20px}
+  .gate-card label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
+  .gate-card input{width:100%;padding:11px 13px;border:1px solid #d7dee9;border-radius:9px;
+                   font-size:14px;font-family:ui-monospace,Consolas,monospace}
+  .gate-card input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
+  .gate-card button{width:100%;margin-top:14px;padding:11px;border:none;border-radius:9px;
+                    background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  .gate-card button:hover{background:#255ccf}
+  .gate-err{color:var(--err);font-size:12.5px;margin-top:10px;min-height:18px}
+  .gate-hint{color:#8a99ad;font-size:12px;margin-top:16px;line-height:1.6;border-top:1px solid var(--line);padding-top:14px}
+
+  /* ---------- 主界面 ---------- */
+  #app{max-width:760px;margin:0 auto;padding:30px 22px 70px}
+  .head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+  .head h1{font-size:21px;margin:0}
+  .head .ver{color:var(--muted);font-size:12.5px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(16,32,64,.04)}
+  .card > strong{font-size:14.5px;display:block}
+  .card .desc{color:var(--muted);font-size:12.8px;margin:5px 0 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  label.fld{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
+  input[type=text],input[type=password],select{padding:9px 11px;border:1px solid #d7dee9;
+        border-radius:8px;font-size:13.2px;background:#fff;color:var(--ink);
+        font-family:ui-monospace,Consolas,monospace}
+  input[type=text]:focus,input[type=password]:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{padding:9px 15px;border:1px solid #d7dee9;background:#fff;border-radius:8px;
+         font-size:13.2px;cursor:pointer;color:#2b3a52;font-family:inherit}
+  button:hover{background:#f2f6fd;border-color:#b9cdf0}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary:hover{background:#255ccf}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .field{margin-top:12px}
+  .pill{display:inline-block;font-size:12px;padding:2px 10px;border-radius:20px;font-weight:600}
+  .pill.ok{background:#e8f6ee;color:var(--ok)}
+  .pill.no{background:#fdeaea;color:var(--err)}
+  .pill.idle{background:#eef2f8;color:#6b7a90}
+  .pill.warn{background:#fdf3e2;color:#a35b00}
+  table.logt{width:100%;border-collapse:collapse;font-size:12.4px;margin-top:4px;
+        border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  table.logt th{background:#f8fafd;color:var(--muted);font-size:11.5px;font-weight:600;
+        padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  table.logt td{padding:6px 8px;border-bottom:1px solid #f4f7fb;vertical-align:top}
+  table.logt tr:last-child td{border-bottom:none}
+  table.logt td.err{color:var(--err);font-size:11.8px;background:#fefafa}
+  textarea{padding:9px 11px;border:1px solid #d7dee9;border-radius:8px;font-size:13px;
+        background:#fff;color:var(--ink);font-family:ui-monospace,Consolas,monospace;
+        line-height:1.7;resize:vertical;width:100%}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .note{background:#f7f9fd;border-left:3px solid var(--accent);border-radius:6px;
+        padding:11px 15px;margin:12px 0;font-size:12.9px;color:#41526b}
+  .warn{background:#fffaf2;border-left:3px solid #e08700;border-radius:6px;
+        padding:11px 15px;margin:12px 0;font-size:12.9px;color:#7a4a00}
+
+  /* ---------- 强制授权 ---------- */
+  #authMask{position:fixed;inset:0;background:rgba(16,24,40,.55);display:flex;align-items:center;
+            justify-content:center;padding:22px;z-index:50}
+  .auth-card{width:100%;max-width:520px;background:var(--card);border-radius:16px;padding:26px 26px 22px;
+             box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:92vh;overflow:auto}
+  .auth-card h2{font-size:17px;margin:0 0 6px}
+  .auth-card .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .auth-step{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+  .auth-step .n{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;
+                border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;margin-right:7px}
+  .auth-step p{margin:0 0 8px;font-size:13px;color:#41526b}
+  .auth-url{word-break:break-all;font-size:12.4px;color:var(--accent);margin:8px 0;
+            font-family:ui-monospace,Consolas,monospace;line-height:1.6}
+  .auth-card input{width:100%;padding:10px 12px;border:1px solid #d7dee9;border-radius:8px;
+                   font-size:13.5px;font-family:ui-monospace,Consolas,monospace;margin-top:4px}
+  .auth-err{color:var(--err);font-size:12.5px;min-height:18px;margin-top:8px}
+  .auth-foot{font-size:12.2px;color:#8a99ad;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+
+  .toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%);background:#16202f;color:#fff;
+         padding:10px 18px;border-radius:9px;font-size:13px;opacity:0;transition:opacity .25s;z-index:60;pointer-events:none}
+  .toast.show{opacity:.95}
+  [hidden]{display:none !important}
+  @media(max-width:620px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ============ 登录门 ============ -->
+<div id="gate">
+  <div class="gate-card">
+    <h1>FNOS API 网关</h1>
+    <p class="lead" id="gateLead">请输入访问令牌</p>
+
+    <div id="setupBox" hidden>
+      <label for="setupTok">系统已生成访问令牌（可修改）</label>
+      <div style="display:flex;gap:8px">
+        <input id="setupTok" type="text" style="flex:1;font-family:ui-monospace,Consolas,monospace">
+        <button id="btnReroll" style="width:auto;margin:0;padding:0 12px;font-size:12.5px">换一个</button>
+      </div>
+      <div style="color:#8a99ad;font-size:12px;margin-top:8px;line-height:1.6">
+        首次使用需要设定令牌。保存后它就是进入本页和调用接口的密码，之后可在「设置」页查看和修改。
+      </div>
+      <button id="btnSetup">保存并进入</button>
+    </div>
+
+    <div id="loginBox">
+      <label for="gateInput">访问令牌</label>
+      <input id="gateInput" type="password" autocomplete="current-password" placeholder="至少 8 位">
+      <button id="gateBtn">进入</button>
+    </div>
+    <div class="gate-err" id="gateErr"></div>
+    <div class="gate-hint" id="gateHint">
+      首次使用无需填任何东西：页面会自动生成一个令牌，点「保存并进入」即可。
+      之后想查看或修改，进入「设置」页的「访问令牌」卡片就能看到。
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主界面（只有设置） ============ -->
+<div id="app" hidden>
+  <div class="head">
+    <h1>设置</h1>
+    <span class="ver" id="ver">—</span>
+  </div>
+  <div class="sub" id="hostLine">正在读取…</div>
+
+  <div class="card">
+    <strong>访问令牌</strong>
+    <div class="desc">进入本页面的密码，也是调用接口时的 <code>Authorization: Bearer &lt;令牌&gt;</code>。</div>
+    <div class="row" style="margin-top:12px">
+      <input id="tokView" type="password" readonly style="flex:1;min-width:200px">
+      <button id="btnShow">显示</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>调用地址</strong>
+    <div class="desc">从浏览器访问本应用的地址，也是接口的 base URL。授权链接默认使用同一地址。</div>
+    <div class="row" style="margin-top:10px">
+      <input id="baseView" type="text" readonly style="flex:1;min-width:220px">
+    </div>
+    <div class="desc" style="margin-top:14px">调用示例（令牌已填好，可直接复制整段到命令行）</div>
+    <pre id="sampleCmd" style="background:#0e1726;color:#cfe0ff;padding:13px 15px;border-radius:10px;
+         overflow:auto;margin:8px 0 0;font-size:12.4px;line-height:1.65;
+         font-family:ui-monospace,Consolas,monospace"></pre>
+  </div>
+
+  <div class="card">
+    <strong>连接参数</strong>
+    <div class="desc">应用与飞牛本机通讯的地址，一般不用改。</div>
+    <div class="grid2">
+      <div class="field"><label class="fld">飞牛地址</label><input id="cfgHost" type="text" style="width:100%"></div>
+      <div class="field"><label class="fld">端口</label><input id="cfgPort" type="text" style="width:100%"></div>
+    </div>
+    <div class="field"><label class="fld">协议</label>
+      <select id="cfgScheme" style="width:100%"><option value="http">http</option><option value="https">https</option></select>
+    </div>
+    <label class="row" style="gap:8px;color:var(--ink);font-size:13px;margin-top:14px">
+      <input type="checkbox" id="cfgPassthrough" style="width:auto"> 允许自由命令通道（<code>/api/cmd</code>）
+    </label>
+    <div class="row" style="margin-top:16px"><button class="primary" id="btnSave">保存</button></div>
+  </div>
+
+  <div class="card">
+    <strong>IP 白名单</strong>
+    <div class="desc">只允许这些来源访问。<b>留空表示不限制（默认关闭）。</b>
+      每行一个 IP 或网段，例如 <code>192.168.1.23</code> 或 <code>192.168.1.0/24</code>。</div>
+    <textarea id="cfgAllow" rows="4" placeholder="留空则不限制&#10;192.168.1.23&#10;192.168.2.0/24" style="margin-top:12px"></textarea>
+    <div class="row" style="margin-top:10px">
+      <span style="font-size:12.8px;color:var(--muted)">当前访问 IP：<b id="curIp" style="color:var(--ink)">—</b></span>
+      <button id="btnAddMyIp">把本机 IP 加进去</button>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="primary" id="btnSaveAllow">保存白名单</button></div>
+    <div class="note" style="margin-bottom:0">
+      本机（飞牛桌面）始终放行，不会因为白名单把自己锁在外面。
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>登录授权</strong>
+    <div class="desc">调用飞牛接口需要一次 OAuth 授权。<b>未授权时本页面会强制弹出授权窗口。</b></div>
+    <div class="row" style="margin-top:12px">
+      <span>当前状态：</span><span id="authState" class="pill idle">检查中…</span>
+      <span class="mono" id="authMsg" style="color:#8a99ad;font-size:12px"></span>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" id="btnReauth">重新授权</button>
+      <button id="btnLogout">退出登录</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>请求日志</strong>
+    <div class="desc">记录发到本应用的 API 请求：接口、状态码、耗时、来源 IP，失败的附原因。
+      内存里保留最近 1000 条，同时落盘到 <code>data/requests.log</code>（单文件 5MB 后轮转）。</div>
+    <div class="row" style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink)">
+        <input type="checkbox" id="logOnlyErr" style="width:auto"> 只看失败
+      </label>
+      <button id="btnLogRefresh">刷新</button>
+      <button id="btnLogClear">清空</button>
+      <span class="mono" id="logStat" style="margin-left:auto;color:var(--muted);font-size:12.3px">—</span>
+    </div>
+    <div id="logTable" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <strong>环境自检</strong>
+    <div class="desc">授权失败时先看这里，能定位是命令行、伪终端还是会话目录的问题。</div>
+    <div class="row" style="margin-top:12px"><button id="btnDiag">运行诊断</button></div>
+    <pre id="diagOut" class="mono" hidden
+         style="background:#0e1726;color:#cfe0ff;padding:13px 15px;border-radius:10px;overflow:auto;margin-top:12px;font-size:12.3px;line-height:1.6"></pre>
+  </div>
+</div>
+
+<!-- ============ 强制授权弹窗 ============ -->
+<div id="authMask" hidden>
+  <div class="auth-card">
+    <h2>需要先完成授权</h2>
+    <p class="lead">本应用通过飞牛官方 OAuth 调用接口。授权前，页面不能使用。</p>
+
+    <div class="auth-step">
+      <p><span class="n">1</span>点击下面的按钮获取授权链接</p>
+      <button class="primary" id="btnAuthStart">获取授权链接</button>
+      <div class="auth-url" id="authUrl" hidden></div>
+      <div class="row" id="authOpenRow" hidden>
+        <button id="btnAuthOpen">在新窗口打开授权页</button>
+        <button id="btnAuthCopy">复制链接</button>
+      </div>
+    </div>
+
+    <div class="auth-step">
+      <p><span class="n">2</span>在授权页点「同意」，把页面上显示的一次性 code 粘到下面</p>
+      <input id="authCode" type="text" placeholder="粘贴 code">
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="btnAuthSubmit">提交授权码</button>
+      </div>
+    </div>
+
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-foot">
+      这个窗口不能关闭。授权成功后会自动消失，同时上方「登录授权」状态变为已授权。<br>
+      授权链接有效期约 5 分钟，过期就重新点一次「获取授权链接」。
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var LS = 'fnos_gw_token';
+  var TOKEN = '';
+  var pollTimer = null;
+  var authUrl = '';
+
+  function $(s) { return document.querySelector(s); }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  // 应用可能被飞牛代理到 /app/xxx/ 下，所有接口都要带同样的前缀，
+  // 否则请求会打到 fnOS 根路径上（表现为页面能打开但接口全 404）。
+  var BASE = (function () {
+    var p = location.pathname;
+    if (p.slice(-1) === '/') return p;
+    var last = p.slice(p.lastIndexOf('/') + 1);
+    if (last.indexOf('.') >= 0) return p.slice(0, p.lastIndexOf('/') + 1);
+    return p + '/';
+  })();
+
+  function url(path) {
+    return BASE + String(path).replace(/^\/+/, '');
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'Authorization': 'Bearer ' + TOKEN };
+    var body;
+    if (opts.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(opts.body);
+    }
+    var res = await fetch(url(path), {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: body,
+      cache: 'no-store'
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) { data = { success: false, error: '返回不是 JSON' }; }
+    return { status: res.status, data: data };
+  }
+
+  /* ---------------- 登录门 ---------------- */
+  function showGate(msg) {
+    $('#gate').hidden = false;
+    $('#app').hidden = true;
+    $('#authMask').hidden = true;
+    $('#gateErr').textContent = msg || '';
+    setTimeout(function () { $('#gateInput').focus(); }, 60);
+  }
+
+  async function tryEnter(tok, silent) {
+    TOKEN = String(tok || '').trim();
+    if (TOKEN.length < 4) {
+      if (!silent) $('#gateErr').textContent = '请输入访问令牌';
+      return false;
+    }
+    $('#gateBtn').disabled = true;
+    $('#gateBtn').textContent = '验证中…';
+    var r = await api('/api/config');
+    $('#gateBtn').disabled = false;
+    $('#gateBtn').textContent = '进入';
+
+    // 后端在「尚未设置令牌」时对所有接口返回 428，这里直接切到首次设置
+    if (r.status === 428) {
+      showSetup();
+      return false;
+    }
+
+    if (r.status === 200 && r.data && r.data.success) {
+      try { localStorage.setItem(LS, TOKEN); } catch (e) {}
+      $('#gate').hidden = true;
+      $('#app').hidden = false;
+      $('#gateErr').textContent = '';
+      enter();
+      return true;
+    }
+    try { localStorage.removeItem(LS); } catch (e) {}
+    if (!silent) {
+      $('#gateErr').textContent = (r.status === 401)
+        ? '令牌不正确，请重新输入'
+        : ('无法进入：' + (r.data && r.data.error ? r.data.error : ('HTTP ' + r.status)));
+    }
+    return false;
+  }
+
+  /* ---------------- 主界面 ---------------- */
+  async function enter() {
+    $('#tokView').value = TOKEN;
+    await loadConfig();
+    await checkAuth(true);
+  }
+
+  async function loadConfig() {
+    var r = await api('/api/config');
+    if (!r.data || !r.data.success) { toast('读取配置失败'); return; }
+    var c = r.data.data || {};
+    $('#cfgHost').value = c.nas_host || 'localhost';
+    $('#cfgPort').value = c.nas_port || '5666';
+    $('#cfgScheme').value = c.nas_scheme || 'http';
+    $('#cfgPassthrough').checked = !!c.allow_passthrough;
+    $('#cfgAllow').value = (c.ip_allowlist || []).join('\n');
+    $('#curIp').textContent = c.client_ip || '未知';
+
+    var hp = await api('/api/health');
+    if (hp.data && hp.data.success) $('#ver').textContent = 'v' + hp.data.data.version;
+
+    var origin = location.origin;
+    $('#baseView').value = origin;
+    $('#sampleCmd').textContent =
+      'curl -H "Authorization: Bearer ' + TOKEN + '" \\\n' +
+      '     ' + origin + '/api/system/host-name';
+
+    var h = await api('/api/system/host-name');
+    if (h.data && h.data.success) {
+      var d = h.data.data || {};
+      $('#hostLine').textContent = (d.hostName || '') + ' · 飞牛 ' + (d.trimVersion || '');
+    } else {
+      $('#hostLine').textContent = '未授权前读不到主机信息';
+    }
+  }
+
+  // 未授权时上游会返回一长串英文（saved proxy session / run login first），
+  // 直接显示会撑破布局，这里换成一句人话，原文放到 title 里。
+  function friendlyAuthMsg(msg) {
+    if (!msg) return '';
+    if (/saved proxy session|run login first|not logged in|session|401|unauthorized/i.test(msg)) {
+      return '需要完成 OAuth 授权';
+    }
+    var t = String(msg).replace(/\s+/g, ' ').trim();
+    return t.length > 36 ? t.slice(0, 36) + '…' : t;
+  }
+
+  async function loadLogs() {
+    var box = $('#logTable');
+    if (!$('#app') || $('#app').hidden) return;
+    var only = $('#logOnlyErr').checked ? '&only_error=1' : '';
+    var r = await api('/api/logs?limit=200' + only);
+    if (!r.data || !r.data.success) {
+      box.innerHTML = '<div class="desc">读取日志失败</div>';
+      return;
+    }
+    var d = r.data.data || {};
+    $('#logStat').textContent = '共 ' + (d.total || 0) + ' 条 · 失败 ' + (d.failed || 0) + ' 条';
+    var items = d.items || [];
+    if (!items.length) {
+      box.innerHTML = '<div class="desc">' + ($('#logOnlyErr').checked ? '没有失败的请求' : '暂无记录') + '</div>';
+      return;
+    }
+    var rows = items.map(function (e) {
+      var cls = e.status >= 500 ? 'no' : (e.status >= 400 ? 'warn' : 'ok');
+      var t = (e.ts || '').slice(11);
+      var path = e.path + (e.query ? '?' + e.query : '');
+      var html = '<tr>' +
+        '<td class="mono" style="color:#8a99ad">' + t + '</td>' +
+        '<td><span class="pill ' + cls + '">' + e.status + '</span></td>' +
+        '<td class="mono">' + e.ms + 'ms</td>' +
+        '<td class="mono" style="word-break:break-all">' + e.method + ' ' + path + '</td>' +
+        '<td class="mono" style="color:#8a99ad">' + (e.ip || '—') + '</td>' +
+        '</tr>';
+      if (!e.ok && e.err) {
+        html += '<tr><td class="err" colspan="5">' + e.err + '</td></tr>';
+      }
+      return html;
+    }).join('');
+    box.innerHTML = '<table class="logt"><thead><tr>' +
+      '<th style="width:62px">时间</th><th style="width:52px">状态</th><th style="width:62px">耗时</th>' +
+      '<th>接口</th><th style="width:100px">来源</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function setAuthState(ok, msg) {
+    var el = $('#authState');
+    el.className = 'pill ' + (ok ? 'ok' : 'no');
+    el.textContent = ok ? '已授权' : '未授权';
+    var span = $('#authMsg');
+    span.textContent = friendlyAuthMsg(msg);
+    span.title = msg || '';
+  }
+
+  async function checkAuth(forceModal) {
+    var r = await api('/api/auth/status');
+    var ok = !!(r.data && r.data.success && r.data.data && r.data.data.logged_in);
+    setAuthState(ok, r.data && r.data.data ? (r.data.data.message || '') : '');
+
+    if (ok) {
+      hideAuthMask();
+    } else if (forceModal !== false) {
+      showAuthMask();
+    }
+    return ok;
+  }
+
+  /* ---------------- 强制授权弹窗 ---------------- */
+  function showAuthMask() {
+    $('#authMask').hidden = false;
+    if (!pollTimer) {
+      pollTimer = setInterval(async function () {
+        var r = await api('/api/auth/status');
+        if (r.data && r.data.success && r.data.data && r.data.data.logged_in) {
+          hideAuthMask();
+          setAuthState(true, '');
+          toast('授权成功');
+          loadConfig();
+        }
+      }, 5000);
+    }
+  }
+  function hideAuthMask() {
+    $('#authMask').hidden = true;
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  async function startAuth() {
+    $('#authErr').textContent = '';
+    $('#btnAuthStart').disabled = true;
+    $('#btnAuthStart').textContent = '获取中…';
+    var r = await api('/api/auth/start', { method: 'POST', body: {} });
+    $('#btnAuthStart').disabled = false;
+    $('#btnAuthStart').textContent = '重新获取授权链接';
+
+    if (!r.data || !r.data.success) {
+      $('#authErr').textContent = '获取失败：' + ((r.data && (r.data.error || r.data.errmsg)) || ('HTTP ' + r.status));
+      return;
+    }
+    authUrl = (r.data.data && r.data.data.auth_url) || '';
+    if (!authUrl) {
+      $('#authErr').textContent = '没有拿到授权链接，请点「运行诊断」查看环境。';
+      return;
+    }
+    // 授权地址默认与调用地址一致：trim-cli 以 localhost 连本机，
+    // 生成的链接里可能是 localhost，从其他机器打开会打不开，这里换成当前访问的主机名。
+    if (location.hostname && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      authUrl = authUrl
+        .replace(/localhost/g, location.hostname)
+        .replace(/127\.0\.0\.1/g, location.hostname);
+    }
+    $('#authUrl').hidden = false;
+    $('#authUrl').textContent = authUrl;
+    $('#authOpenRow').hidden = false;
+  }
+
+  async function submitCode() {
+    var code = $('#authCode').value.trim();
+    if (!code) { $('#authErr').textContent = '请先粘贴 code'; return; }
+    $('#authErr').textContent = '';
+    $('#btnAuthSubmit').disabled = true;
+    $('#btnAuthSubmit').textContent = '提交中…';
+    var r = await api('/api/auth/code', { method: 'POST', body: { code: code } });
+    $('#btnAuthSubmit').disabled = false;
+    $('#btnAuthSubmit').textContent = '提交授权码';
+
+    if (r.data && r.data.success) {
+      var ok = await checkAuth(false);
+      if (ok) { toast('授权成功'); loadConfig(); }
+      else { $('#authErr').textContent = '提交成功但状态仍未授权，请稍等或重新获取授权链接。'; }
+    } else {
+      $('#authErr').textContent = '授权失败：' + ((r.data && (r.data.error || r.data.errmsg)) || ('HTTP ' + r.status));
+    }
+  }
+
+  /* ---------------- 事件绑定 ---------------- */
+  $('#gateBtn').onclick = function () { tryEnter($('#gateInput').value, false); };
+  $('#btnSetup').onclick = doSetup;
+  $('#btnReroll').onclick = function () { $('#setupTok').value = randToken(); $('#setupTok').select(); };
+  $('#gateInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') tryEnter($('#gateInput').value, false);
+  });
+
+  $('#btnShow').onclick = function () {
+    var el = $('#tokView');
+    var showing = el.type === 'text';
+    el.type = showing ? 'password' : 'text';
+    $('#btnShow').textContent = showing ? '显示' : '隐藏';
+  };
+  $('#btnSave').onclick = async function () {
+    var patch = {
+      nas_host: $('#cfgHost').value.trim(),
+      nas_port: $('#cfgPort').value.trim(),
+      nas_scheme: $('#cfgScheme').value,
+      allow_passthrough: $('#cfgPassthrough').checked
+    };
+    var r = await api('/api/config', { method: 'POST', body: patch });
+    if (r.data && r.data.success) { toast('已保存'); loadConfig(); }
+    else { toast('保存失败：' + ((r.data && r.data.error) || '')); }
+  };
+
+  $('#btnAddMyIp').onclick = function () {
+    var ip = $('#curIp').textContent.trim();
+    if (!ip || ip === '未知') { toast('取不到当前 IP'); return; }
+    var lines = $('#cfgAllow').value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+    if (lines.indexOf(ip) < 0) { lines.push(ip); }
+    $('#cfgAllow').value = lines.join('\n');
+    toast('已加入 ' + ip);
+  };
+
+  $('#btnSaveAllow').onclick = async function () {
+    var r = await api('/api/config', {
+      method: 'POST',
+      body: { ip_allowlist: $('#cfgAllow').value }
+    });
+    if (r.data && r.data.success) { toast('白名单已保存'); loadConfig(); }
+    else { toast((r.data && r.data.error) || '保存失败'); }
+  };
+
+  $('#btnReauth').onclick = function () { showAuthMask(); };
+  $('#btnLogout').onclick = async function () {
+    if (!confirm('退出登录会清除飞牛的 OAuth 会话，之后需要重新授权。继续？')) return;
+    await api('/api/auth/logout', { method: 'POST', body: {} });
+    await checkAuth(true);
+    toast('已退出登录');
+  };
+
+  $('#btnAuthStart').onclick = startAuth;
+  $('#btnAuthSubmit').onclick = submitCode;
+  $('#authCode').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') submitCode();
+  });
+  $('#btnAuthOpen').onclick = function () {
+    if (authUrl) window.open(authUrl, '_blank', 'noopener');
+  };
+  $('#btnAuthCopy').onclick = async function () {
+    try { await navigator.clipboard.writeText(authUrl); toast('授权链接已复制'); }
+    catch (e) { toast('复制失败，请手动选中'); }
+  };
+
+  $('#btnLogRefresh').onclick = loadLogs;
+  $('#logOnlyErr').onchange = loadLogs;
+  $('#btnLogClear').onclick = async function () {
+    if (!confirm('确定清空所有请求日志？')) return;
+    await api('/api/logs/clear', { method: 'POST', body: {} });
+    loadLogs();
+    toast('日志已清空');
+  };
+
+  $('#btnDiag').onclick = async function () {
+    var r = await api('/api/auth/diagnose');
+    var pre = $('#diagOut');
+    pre.hidden = false;
+    pre.textContent = JSON.stringify(r.data, null, 2);
+  };
+
+  /* ---------------- 启动 ---------------- */
+  // 生成 32 位十六进制随机令牌（浏览器加密随机源）
+  function randToken() {
+    var a = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) {
+      return ('0' + b.toString(16)).slice(-2);
+    }).join('');
+  }
+
+  function showSetup() {
+    $('#gate').hidden = false;
+    $('#app').hidden = true;
+    $('#loginBox').hidden = true;
+    $('#setupBox').hidden = false;
+    $('#gateLead').textContent = '首次使用，请确认访问令牌';
+    $('#setupTok').value = randToken();
+    $('#gateErr').textContent = '';
+    setTimeout(function () { $('#setupTok').select(); }, 80);
+  }
+
+  async function doSetup() {
+    var tok = ($('#setupTok').value || '').trim();
+    if (tok.length < 8) {
+      $('#gateErr').textContent = '令牌至少 8 位';
+      return;
+    }
+    $('#btnSetup').disabled = true;
+    $('#btnSetup').textContent = '保存中…';
+    var r = await api('/api/setup', { method: 'POST', body: { token: tok } });
+    $('#btnSetup').disabled = false;
+    $('#btnSetup').textContent = '保存并进入';
+    if (!r.data || !r.data.success) {
+      $('#gateErr').textContent = (r.data && r.data.error) || '保存失败';
+      return;
+    }
+    $('#setupBox').hidden = true;
+    $('#loginBox').hidden = false;
+    await tryEnter(tok, false);
+  }
+
+  async function boot() {
+    $('#gate').hidden = false;
+
+    // 首次使用：安装时没有设令牌，先让用户确认/修改系统生成的令牌
+    var s = null;
+    try {
+      var sr = await fetch(url('/api/setup'));
+      s = await sr.json();
+    } catch (e) {}
+    if (s && s.data && s.data.needs_setup) { showSetup(); return; }
+
+    var fromUrl = '';
+    try { fromUrl = new URLSearchParams(location.search).get('token') || ''; } catch (e) {}
+    var stored = '';
+    try { stored = localStorage.getItem(LS) || ''; } catch (e) {}
+
+    var tok = fromUrl || stored;
+    if (!tok) { showGate(''); return; }
+
+    var ok = await tryEnter(tok, true);
+    if (!ok) {
+      showGate(stored ? '令牌已失效，请重新输入' : '请输入访问令牌');
+    }
+  }
+
+  boot();
+  setInterval(function () {
+    if (TOKEN && !$('#app').hidden) loadLogs();
+  }, 10000);
+})();
+</script>
+</body>
+</html>

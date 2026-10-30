@@ -1,0 +1,9 @@
+#!/bin/bash
+# 升级回调：不动用户的配置与令牌，只确保目录存在、权限正确。
+# （安装是全新开始，令牌留空由页面首次设置；升级必须保留，否则接口调用方全部失效）
+
+DATA_DIR="${TRIM_PKGVAR}/data"
+mkdir -p "${DATA_DIR}/trim-cli"
+chmod 700 "${DATA_DIR}/trim-cli" 2>/dev/null || true
+[ -f "${DATA_DIR}/config.json" ] && chmod 600 "${DATA_DIR}/config.json" 2>/dev/null || true
+exit 0

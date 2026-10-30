@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FNOS API 网关 · 使用文档</title>
+<style>
+  :root{
+    --bg:#f6f8fc; --card:#fff; --ink:#16202f; --muted:#6b7a90; --line:#e6ebf3;
+    --accent:#2f6fed; --ok:#0d7a3d; --warn:#a35b00; --err:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14.5px/1.75 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .layout{display:flex;max-width:1240px;margin:0 auto}
+  aside{width:210px;flex:0 0 210px;position:sticky;top:0;height:100vh;padding:26px 12px;
+        border-right:1px solid var(--line);background:#fff;overflow:auto}
+  aside .t{font-weight:700;font-size:13px;color:#3b4a60;padding:0 10px 10px}
+  aside a{display:block;padding:6px 10px;border-radius:7px;color:#4a5a72;font-size:13px;text-decoration:none}
+  aside a:hover{background:#f2f6fd;color:var(--accent)}
+  main{flex:1;min-width:0;padding:30px 34px 80px}
+  h1{font-size:24px;margin:0 0 6px}
+  .lead{color:var(--muted);font-size:13px;margin-bottom:26px}
+  h2{font-size:17px;margin:38px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  h3{font-size:14.5px;margin:22px 0 8px;color:#2b3a52}
+  p{margin:10px 0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0;
+        box-shadow:0 1px 2px rgba(16,32,64,.04)}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+        border-radius:10px;overflow:hidden;margin:12px 0;font-size:13px}
+  th{text-align:left;background:#f8fafd;color:var(--muted);font-size:12px;font-weight:600;
+     padding:8px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 11px;border-bottom:1px solid #f2f5fa;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td code,p code,li code{background:#eef2f8;padding:1px 6px;border-radius:5px;font-size:12.4px;
+       font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  pre{background:#0e1726;color:#cfe0ff;padding:14px 16px;border-radius:10px;overflow:auto;
+      font-size:12.6px;line-height:1.65;margin:10px 0;
+      font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  pre .c{color:#6b8bb5}
+  .m{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;
+     font-family:ui-monospace,Consolas,monospace}
+  .m.get{background:#e8f5ee;color:#0d7a3d}
+  .m.post{background:#fff2e5;color:#a35b00}
+  .tip{background:#f7f9fd;border-left:3px solid var(--accent);border-radius:6px;padding:11px 15px;margin:12px 0;font-size:13.2px;color:#41526b}
+  .warn{background:#fffaf2;border-left:3px solid #e08700;border-radius:6px;padding:11px 15px;margin:12px 0;font-size:13.2px;color:#7a4a00}
+  .danger{background:#fef6f6;border-left:3px solid #dc2626;border-radius:6px;padding:11px 15px;margin:12px 0;font-size:13.2px;color:#8a2020}
+  .pill{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:20px;font-weight:600}
+  .pill.ok{background:#e8f6ee;color:#0d7a3d}
+  .pill.no{background:#fdeaea;color:#b91c1c}
+  .pill.mid{background:#fdf3e2;color:#a35b00}
+  .dim{color:#8a99ad;font-size:12.5px}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:900px){aside{display:none}main{padding:20px}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div class="t">目录</div>
+  <a href="#start">1. 快速开始</a>
+  <a href="#auth">2. 鉴权</a>
+  <a href="#format">3. 返回格式</a>
+  <a href="#codes">4. 状态码与错误</a>
+  <a href="#api">5. 接口清单</a>
+  <a href="#sys">· 系统</a>
+  <a href="#mon">· 监控</a>
+  <a href="#stor">· 存储</a>
+  <a href="#file">· 文件</a>
+  <a href="#app">· 应用 / 下载</a>
+  <a href="#docker">· Docker</a>
+  <a href="#user">· 用户 / 日志</a>
+  <a href="#misc">· 其它</a>
+  <a href="#cmd">6. 通用命令通道</a>
+  <a href="#sample">7. 多语言示例</a>
+  <a href="#log">8. 请求日志</a>
+  <a href="#write">9. 写操作与安全</a>
+  <a href="#extra">11. 扩展管理接口</a>
+  <a href="#faq">10. 已知限制</a>
+</aside>
+
+<main>
+<h1>FNOS API 网关 · 使用文档</h1>
+<div class="lead">版本 1.5.2 ｜ 服务端口 9932 ｜ 最低系统 fnOS 1.2.0800 ｜ 最后更新 2026-10-27</div>
+
+<div class="card">
+  <b>一句话概括：</b>本应用把飞牛官方的命令行 <code>trim-cli</code> 封装成 HTTP 接口，用 Bearer 令牌鉴权。
+  你在任何语言里发一个 HTTP 请求，就能读系统状态、管理文件、控制应用和 Docker，不用登 SSH。
+</div>
+
+<h2 id="start">1. 快速开始</h2>
+
+<div class="tip">
+  <b>关于安装：</b>安装时<strong>不需要填任何东西</strong>，点安装即可。
+  装好后打开应用，页面会<strong>自动生成一个访问令牌</strong>并预填好，点「保存并进入」就能用；
+  想自己换一个也行。这个令牌既是进入网页的密码，也是调用接口的 Bearer 令牌，
+  之后随时可以在「设置」页查看或修改。
+</div>
+<h3>第一步：拿到访问地址和令牌</h3>
+<p>应用装在飞牛上，监听 <code>9932</code> 端口。地址取决于你从哪里访问：</p>
+<table>
+<thead><tr><th style="width:180px">访问位置</th><th>地址</th></tr></thead>
+<tbody>
+<tr><td>在飞牛桌面打开</td><td><code>http://localhost:9932</code></td></tr>
+<tr><td>局域网其它电脑</td><td><code>http://飞牛的内网IP:9932</code>（如 192.168.1.23）</td></tr>
+<tr><td>通过 Tailscale</td><td><code>http://100.x.x.x:9932</code></td></tr>
+</tbody>
+</table>
+<p>令牌由应用在首次打开时生成，之后可以随时改。两种查看方式：</p>
+<ol>
+  <li>应用「设置」页的「访问令牌」卡片，点<strong>显示</strong>（也可以直接在这里改）</li>
+  <li>用文件管理打开应用数据目录的 <code>data/config.json</code>，看 <code>api_token</code> 字段</li>
+</ol>
+<div class="warn">
+  进入页面<strong>必须输入令牌验证</strong>，验证通过才会显示设置页；浏览器会记住，下次自动验证。
+  换浏览器或清了缓存需要重新输入。确实忘了就用第 2 种方式查。
+</div>
+
+<h3>第二步：验证连通</h3>
+<pre><span class="c"># 不需要令牌，返回应用版本即表示服务正常</span>
+curl http://192.168.1.23:9932/api/health</pre>
+<pre>{"success":true,"data":{"app":"fnos-api-gw","nas_host":"localhost","nas_port":"5666","scheme":"http","version":"1.5.2"}}</pre>
+
+<h3>第三步：调用一个真实接口</h3>
+<pre>curl -H <span style="color:#8fd6a8">"Authorization: Bearer 你的令牌"</span> \
+     http://192.168.1.23:9932/api/system/host-name</pre>
+<pre>{"success":true,"data":{"hasUsers":true,"hostName":"ssnas","trimVersion":"1.2.0800"}}</pre>
+
+<div class="tip">
+  网页端<strong>只提供一个「设置」页</strong>：查看令牌、改连接参数、完成授权、跑环境自检。
+  没有概览、文件浏览之类的功能页——那些能力通过 HTTP 接口调用，见第 5 节。
+</div>
+
+<h3>第四步：完成授权（必须）</h3>
+<p>认证通过后，如果还没有完成飞牛 OAuth 授权，页面会<strong>强制弹出授权窗口，不能关闭</strong>：
+点「获取授权链接」→ 在新窗口打开并同意 → 把页面上的一次性 code 粘回来提交。成功后弹窗自动消失。</p>
+<div class="note">
+  <b>授权链接的地址跟随你的访问地址。</b>后台是以 <code>localhost</code> 连飞牛本机的，
+  生成的链接里可能是 <code>localhost</code>，从别的电脑打不开；页面会自动把它替换成你当前访问用的主机名，
+  保证「授权地址」和「调用地址」一致。
+</div>
+
+<h2 id="auth">2. 鉴权</h2>
+<p>除 <code>/api/health</code> 和 <code>/api/setup</code> 外，所有接口都要在请求头带令牌：</p>
+<pre>Authorization: Bearer &lt;你的令牌&gt;</pre>
+<p>也支持把令牌放在查询串里（方便浏览器直接打开，不推荐用于生产）：</p>
+<pre>http://192.168.1.23:9932/api/system/host-name?token=你的令牌</pre>
+<div class="warn">
+  令牌等同于 NAS 的管理权限，<strong>不要写进前端代码、不要提交到 Git</strong>。
+  建议放在服务端环境变量里。怀疑泄露时，删掉 <code>data/config.json</code> 重启应用即可重新设置。
+</div>
+
+<h2 id="format">3. 返回格式</h2>
+<p>所有接口返回统一的 JSON 信封：</p>
+<div class="grid2">
+<div>
+<h3>成功</h3>
+<pre>{
+  "success": true,
+  "data": { ... }        <span class="c">// 业务数据，结构由上游决定</span>
+}</pre>
+</div>
+<div>
+<h3>失败</h3>
+<pre>{
+  "success": false,
+  "error": "缺少 path 参数",
+  "errmsg": "上游原始错误",   <span class="c">// 可能没有</span>
+  "errno": 100060031,       <span class="c">// 可能没有</span>
+  "hint": "处理建议"          <span class="c">// 可能没有</span>
+}</pre>
+</div>
+</div>
+<p>上游的 <code>errno</code> 会被提取到<b>顶层同名字段</b>，不用再从 <code>errmsg</code> 文本里抠：</p>
+<pre>{"success":false,"error":"路径不存在或不可访问","errmsg":"... errno 4100","errno":4100}</pre>
+<p><code>error</code> 是给人看的一句话，<code>errmsg</code> 保留上游原文，<code>errno</code> 用于程序判断。</p>
+<p>判断成功请看 <code>success</code> 字段，不要只看 HTTP 状态码——某些上游业务错误会以 200 + <code>success:false</code> 返回。
+<code>errmsg</code> 是飞牛原始报错，排障时最有价值。</p>
+
+<h2 id="codes">4. 状态码与错误</h2>
+<table>
+<thead><tr><th style="width:90px">状态码</th><th style="width:200px">含义</th><th>怎么处理</th></tr></thead>
+<tbody>
+<tr><td><b>200</b></td><td>请求已处理</td><td>再检查 <code>success</code> 字段</td></tr>
+<tr><td><b>400</b></td><td>参数缺失或非法</td><td>看 <code>error</code>，如"缺少 path 参数"</td></tr>
+<tr><td><b>401</b></td><td>令牌不匹配</td><td>核对令牌；忘了就看 <code>data/config.json</code></td></tr>
+<tr><td><b>403</b></td><td>被策略拦截</td><td>如 <code>/api/cmd</code> 里调 media/login/改连接参数</td></tr>
+<tr><td><b>409</b></td><td>状态冲突</td><td>操作与当前状态不符，如 SSH 已是目标状态、下载任务已完成、回收站里没有该文件</td></tr>
+<tr><td><b>404</b></td><td>接口或目标不存在</td><td>核对路径。<b>查询/删除不存在的文件、不存在的磁盘、非共享目录，都返回 404</b></td></tr>
+<tr><td><b>409</b></td><td>状态冲突</td><td>如重复调用首次设置</td></tr>
+<tr><td><b>428</b></td><td>尚未设置令牌</td><td>先在网页完成首次设置</td></tr>
+<tr><td><b>500</b></td><td>执行失败</td><td>看 <code>errmsg</code>/<code>errno</code>，多为 NAS 侧限制</td></tr>
+<tr><td><b>504</b></td><td>超时</td><td>换更小的查询范围重试</td></tr>
+</tbody>
+</table>
+<div class="tip">
+  <b>请求体上限 1MB</b>，读取超时 60 秒。正常调用只有几 KB。注意：走慢链路（如 Tailscale 十几 KB/s）时，接近 1MB 的请求会先撞上 60 秒读超时而不是 1MB 上限，这类场景请在局域网内调用。
+</div>
+<div class="tip">
+  <b>只读请求会自动重试一次。</b>当底层代理出现瞬时连接故障（<code>failed to call HTTP proxy</code>）时，
+  GET 接口会等 500 毫秒后重试一次。<b>写操作不会重试</b>，避免重复执行。
+</div>
+
+<h2 id="api">5. 接口清单</h2>
+<p class="dim">参数列中：<code>?x=</code> 表示 URL 查询参数；"JSON body" 表示放在请求体里。</p>
+
+<h3 id="sys">5.1 系统</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:120px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/info</code></td><td>—</td><td>机型标识（原始字节数组，一般用下面几个代替）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/host-name</code></td><td>—</td><td>主机名 + 飞牛版本</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/trim-version</code></td><td>—</td><td>版本号、版本类型（Mainland-PE）、平台</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/kernel-version</code></td><td>—</td><td>内核版本</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/machine-id</code></td><td>—</td><td>机器唯一标识</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/uptime</code></td><td>—</td><td>运行时长（秒）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/hardware</code></td><td>—</td><td>主板、CPU、内存、GPU、系统盘</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/vols</code></td><td>—</td><td>存储卷列表</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/all-vols</code></td><td>—</td><td>存储卷详细信息</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/docker</code></td><td>—</td><td>Docker 运行环境信息</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/unix-time</code></td><td>—</td><td>系统时间戳</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/time-setting</code></td><td>—</td><td>时区与时间设置</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/timezone-list</code></td><td>—</td><td>可选时区列表</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/power-plan</code></td><td>—</td><td>电源计划</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/power-plan-status</code></td><td>—</td><td>电源计划状态</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/next-power-off-time</code></td><td>—</td><td>下次关机时间</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/fan-mode</code></td><td>—</td><td>风扇模式</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/is-trim-machine</code></td><td>—</td><td>是否飞牛官方机型</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/inited-timestamp</code></td><td>—</td><td>系统初始化时间</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/boot-on-power</code> <span class="pill mid">机型</span></td><td>—</td><td>来电自启设置<br><span class="dim">仅飞牛官方硬件支持</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/trim-disk</code> <span class="pill mid">机型</span></td><td>—</td><td>官方机型专有磁盘信息<br><span class="dim">仅官方硬件</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/power-on-seconds</code> <span class="pill mid">机型</span></td><td>—</td><td>开机耗时<br><span class="dim">仅官方硬件</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/reserved-partition</code> <span class="pill mid">机型</span></td><td>—</td><td>保留分区<br><span class="dim">仅官方硬件</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/system/trim-feature</code> <span class="pill mid">机型</span></td><td>—</td><td>机型特性<br><span class="dim">仅官方硬件</span></td></tr>
+</tbody>
+</table>
+
+<h3 id="mon">5.2 监控</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:120px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/cpu</code></td><td>—</td><td>使用率 <code>data.cpu.busy.all</code>、负载、主频</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/memory</code></td><td>—</td><td><code>data.mem.total/used/available</code>、swap</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/net</code></td><td>—</td><td>各网卡收发速率 <code>data.ifs[]</code></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/disk</code></td><td>—</td><td>各磁盘忙闲、读写、温度</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/gen</code></td><td><code>?item=</code> <b>必填</b></td><td>聚合指标。取值：<code>cpuBusy</code> <code>memPercent</code> <code>storeSpeed</code> <code>netSpeed</code>，可逗号分隔</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/proc-list</code></td><td>—</td><td>进程列表（约 190 条）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/proc-srv</code></td><td>—</td><td>服务视图</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/proc-info</code> <span class="pill mid">限制</span></td><td><code>?pids=</code> <b>必填</b></td><td>指定进程详情<br><span class="dim">部分固件版本不支持该端点</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/sys-warn</code></td><td>—</td><td>系统告警</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/sys-fan</code></td><td>—</td><td>风扇转速</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/gpu</code></td><td>—</td><td>GPU 指标</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/npu</code></td><td>—</td><td>NPU 指标</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/battery</code> <span class="pill mid">硬件</span></td><td>—</td><td>电池状态<br><span class="dim">台式机/无电池设备会报错</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/monitor/beep-supported</code></td><td>—</td><td>蜂鸣器事件支持情况</td></tr>
+</tbody>
+</table>
+
+<h3 id="stor">5.3 存储</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:170px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/overview</code></td><td>—</td><td>存储总览（含阵列状态）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/pools</code></td><td>—</td><td>存储池列表：<code>array[].fssize/frsize/level/fstype</code></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/disks</code></td><td>—</td><td>磁盘明细：型号、容量、协议、所属池</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/space</code></td><td>—</td><td>空间统计：<code>fssizeStor</code>/<code>frsizeStor</code>、HDD/SSD 数量</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/free-disks</code></td><td>—</td><td>未使用（可建池）的磁盘</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/removable</code></td><td>—</td><td>可移动设备（U 盘等）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/health</code></td><td><code>?disk=sda</code></td><td>磁盘健康概览。<b>磁盘名不存在返回 404</b></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/smart</code></td><td><code>?disk=sda</code></td><td>SMART 属性明细。<b>磁盘名不存在返回 404</b></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/storage/disk-info</code></td><td><code>?disk=sda</code></td><td>单块磁盘详情。<b>磁盘名不存在返回 404</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/mount</code></td><td>JSON：<code>uuid</code></td><td>挂载存储池</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/umount</code></td><td>JSON：<code>uuid</code> <code>password</code></td><td>卸载（需密码预校验）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/stop</code></td><td>JSON：<code>uuid</code> <code>password</code></td><td>停止存储池</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/extend</code></td><td>JSON：<code>uuid</code> <code>password</code></td><td>扩容</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/eject</code></td><td>JSON：<code>disk</code> <code>password</code></td><td>弹出磁盘</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/format</code></td><td>JSON：<code>disk</code> <code>fstype</code> <code>password</code></td><td><b>格式化</b>，不可恢复</td></tr>
+</tbody>
+</table>
+
+<h3 id="file">5.4 文件</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:170px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/ls</code></td><td><code>?path=/vol1</code></td><td>列目录，返回数组（name/dir/mtim）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/ls-dir</code></td><td><code>?path=/vol1</code></td><td>同上层，但汇总多段结果</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/usage</code></td><td><code>?vol=1</code></td><td>按用户/分类统计容量占用（较重，约 5 秒）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/search</code></td><td><code>?key=xxx&amp;paths=a,b</code></td><td>按名称搜索<br><span class="dim">重查询，见第 9 节</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/search-others</code></td><td><code>?key=xxx</code></td><td>搜索别人共享给你的文件</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/prop</code></td><td><code>?path=</code></td><td>文件属性。<b>路径不存在返回 404</b>（上游原本是 success:true 里藏 errno 4100）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/size</code></td><td><code>?path=</code></td><td>目录/文件大小</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/access</code></td><td><code>?path=</code></td><td>访问记录。<b>路径不存在返回 404</b></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/is-mount-point</code></td><td><code>?path=</code></td><td>是否挂载点（路径不存在时返回 <code>hasMount:false</code>）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/acl/get</code></td><td><code>?path=</code> <code>?prop=true</code></td><td>读取 ACL</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/share/info</code></td><td><code>?path=</code></td><td>共享详情<br><span class="dim">path 必须是共享目录，不是 /vol1</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/share/list</code></td><td><code>?uid=</code></td><td>我的共享</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/share/list-others</code></td><td>—</td><td>别人共享给我的</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/share/admin-list</code></td><td><code>?uid=</code></td><td>管理员视角的全部共享</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/share/admin-list-others</code></td><td>—</td><td>管理员视角的全部共享（跨用户）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/trash/list</code></td><td><code>?path=</code></td><td>回收站</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/fav/list</code></td><td>—</td><td>收藏夹</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/recent/list</code></td><td>—</td><td>最近访问</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/app-dir-list</code></td><td>—</td><td>应用数据目录</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/sys-part-info</code></td><td>—</td><td>系统分区信息</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/mkdir</code></td><td>JSON：<code>path</code></td><td>新建目录。<b>父目录不存在会自动创建</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/rm</code></td><td>JSON：<code>path</code></td><td>删除。<b>目录会连内容一起删</b>；<b>目标不存在返回 404</b>，不会假成功</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/cp</code></td><td>JSON：<code>src</code> <code>dest_dir</code>（<b>目标目录</b>，也接受 dest/dst）<code>src</code> <code>dest</code></td><td>复制到 <code>dest</code> 目录下（<b>dest 必须是目录</b>）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/mv</code></td><td>JSON：<code>src</code> <code>dest_dir</code>（<b>目标目录</b>，也接受 dest/dst）<code>src</code> <code>dest</code></td><td>移动到 <code>dest</code> 目录下（<b>dest 必须是目录</b>）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/rename</code></td><td>JSON：<code>src</code> <code>name</code>（新名，也接受 path/new_name）<code>src</code> <code>name</code></td><td>重命名</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/share/add</code></td><td>JSON：<code>path</code> <code>name</code> <code>permset</code>（<b>必填</b>）</td><td>创建共享。<code>permset</code> 传 ACL 对象数组。<b>permset 非法返回 400</b>（不是 500）；失败时<b>自动回滚</b>，不会留下半成品共享</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/share/del</code></td><td>JSON：<code>path</code></td><td>取消共享。<b>非共享目录返回 404</b></td></tr>
+</tbody>
+</table>
+<div class="tip">
+  <b>路径写法：</b>飞牛用 <code>/vol1/用户目录/...</code> 或 <code>/vol3/...</code>。
+  注意 <code>file/share/list</code> 返回的 <code>path</code> <b>不带前导 <code>/</code></b>（如 <code>vol3/1000/xxx</code>），
+  但两种形式传给 <code>share/info</code> 都认。
+  用 <code>/api/system/vols</code> 可以拿到实际卷号。不要写成 Windows 风格的反斜杠。
+</div>
+<div class="warn">
+  <b>cp / mv 的目标参数是「目录」不是「新路径」。</b><br>
+  <code>{"src":"/vol1/1000/a","dest":"/vol1/1000/b"}</code> 的结果是 <code>/vol1/1000/b/a</code>，
+  不是把 a 改名叫 b。要改名请用 <code>/api/file/rename</code>（<code>name</code> 只传新名字，不传路径）。
+  目标目录不存在时会创建失败，先 <code>mkdir</code>。
+</div>
+
+<h3 id="app">5.5 应用中心 / 下载</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:150px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/app/list</code></td><td>—</td><td>已安装应用（含名称、图标、Docker 标记）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/app/status</code></td><td><code>?name=xxx</code></td><td>单个应用状态</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/app/check-update</code></td><td>—</td><td>检查可用更新</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/app/start</code></td><td>JSON：<code>name</code></td><td>启动应用</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/app/stop</code></td><td>JSON：<code>name</code></td><td>停止应用</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/app/restart</code></td><td>JSON：<code>name</code></td><td>重启应用</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/app/uninstall</code></td><td>JSON：<code>name</code></td><td><b>卸载</b>应用</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/download/ls</code></td><td><code>?keyword=</code></td><td>下载任务列表 + 统计</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/download/stat</code></td><td>—</td><td>实时上下行速率</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/download/info</code></td><td><code>?id=</code></td><td>任务详情。<span class="dim">上游 task.getInfo 目前常失败，见「已知限制」</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/download/files</code></td><td><code>?id=</code></td><td>任务内文件。<span class="dim">同上</span></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/download/add-uri</code></td><td>JSON：<code>uri</code> <code>saveDir</code></td><td>按链接新建下载。<b>上游拒绝时返回 400</b>（<code>errs</code> 非空或 <code>ids=-1</code>）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/download/pause</code></td><td>JSON：<code>ids[]</code></td><td>暂停（resume/retry/rm 同构）。<code>ids</code> 里<b>数字和字符串都接受</b>；<b>任务不存在返回 404</b>，不会静默成功</td></tr>
+</tbody>
+</table>
+
+<h3 id="docker">5.6 Docker</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:150px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/stats</code></td><td>—</td><td>Docker 总览</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/image/ls</code></td><td>—</td><td>镜像列表</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/image/inspect</code></td><td><code>?ref=</code></td><td>镜像详情</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/container/ls</code></td><td>—</td><td>容器列表</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/container/inspect</code></td><td><code>?id=</code></td><td>容器详情</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/container/top</code></td><td><code>?id=</code></td><td>容器内进程</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/docker/compose/ls</code></td><td>—</td><td>Compose 项目</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/docker/container/start</code></td><td>JSON：<code>id</code></td><td>启动（stop/restart/kill 同构）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/docker/image/pull</code></td><td>JSON：<code>ref</code></td><td>拉取镜像（耗时较长）</td></tr>
+</tbody>
+</table>
+
+<h3 id="user">5.7 用户 / 日志 / 相册 / 百度网盘</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:150px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/user/list</code></td><td>—</td><td>用户列表（uid、是否管理员、是否允许 SSH）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/user/info</code></td><td><code>?user=</code>（<b>用户名，不是 uid</b>）</td><td>用户详情。传 uid 返回 400 并提示用 <code>user/list</code> 对照</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/user/group-list</code></td><td>—</td><td>用户组</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/user/group-users</code></td><td>—</td><td>组内成员</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/user/list-login-device</code></td><td>—</td><td>登录设备记录</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/del</code></td><td>JSON：<code>user</code></td><td><b>删除用户</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/set-admin</code></td><td>JSON：<code>user</code> <code>on</code></td><td>设为/取消管理员</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/add</code></td><td>JSON：<code>user</code> 必填；<code>password</code> <code>groups</code> <code>comment</code> <code>email</code> <code>mobile</code> <code>admin</code></td><td><b>新建用户</b>。<code>groups</code> 传组名或逗号分隔；<code>admin:true</code> 直接建为管理员</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/mod</code></td><td>JSON：<code>user</code> 必填；<code>new_name</code> <code>password</code> <code>groups</code> <code>comment</code> <code>email</code> <code>mobile</code> <code>allow_ssh</code> <code>disable_user</code> <code>disable_change_password</code></td><td><b>修改用户</b>：改名用 <code>new_name</code>。什么都不传会返回 400 提示至少改一项</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/change-password</code></td><td>JSON：<code>new_password</code> <code>old_password</code> <b>均必填</b>；<code>user</code> <code>remove_token</code></td><td>改密码。<b>必须提供该用户当前密码</b>——飞牛 CLI 会交互式询问，不传会一直挂着。不传 <code>user</code> 表示改当前登录账号</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/unfreeze</code></td><td>JSON：<code>user</code></td><td>解冻被冻结的账号</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/group/add</code></td><td>JSON：<code>group</code> <code>comment</code></td><td>新建用户组</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/group/mod</code></td><td>JSON：<code>group</code> <code>new_name</code> <code>comment</code></td><td>改组名或备注</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/group/del</code></td><td>JSON：<code>group</code></td><td><b>删除用户组</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/group/set-users</code></td><td>JSON：<code>group</code> <code>users</code></td><td>用给定成员<b>覆盖</b>整组</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/group/add-users</code></td><td>JSON：<code>group</code> <code>users</code></td><td>往组里<b>追加</b>成员</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/user/group/del-users</code></td><td>JSON：<code>group</code> <code>users</code></td><td>从组里<b>移除</b>成员</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/logger/modules</code></td><td>—</td><td>日志模块字典（id → 名称）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/logger/list</code></td><td><code>?page=</code> <code>?page_size=</code> <code>?level=</code> <code>?module=</code></td><td>日志查询。level：0 信息 / 1 提示 / 2 警告 / 3 错误</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/logger/archive/query</code></td><td>—</td><td>日志归档策略</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/logger/export</code></td><td>JSON：<code>level</code> <code>module</code>（<b>均必填</b>）</td><td>导出日志，返回生成的文件路径。两个参数<b>数字或字符串都行</b></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/photos/folders</code></td><td>—</td><td>相册目录</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/photos/search</code></td><td><code>?key=</code> <code>?limit=</code></td><td>照片搜索</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/baidu/status</code> <span class="pill mid">插件</span></td><td>—</td><td>百度网盘授权状态<br><span class="dim">需先在飞牛安装百度网盘插件</span></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/baidu/quota</code> <span class="pill mid">插件</span></td><td>—</td><td>网盘容量</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/baidu/task/list</code> <span class="pill mid">插件</span></td><td><code>?transfer=upload|download</code> <b>必填</b></td><td>传输任务</td></tr>
+</tbody>
+</table>
+
+<h3 id="misc">5.8 其它</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:250px">路径</th><th style="width:150px">参数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="m get">GET</span></td><td><code>/api/health</code></td><td>—</td><td><b>免鉴权</b>，探活与版本</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/status</code></td><td>—</td><td>一次性聚合 CPU/内存/存储等只读状态</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/config</code></td><td>—</td><td>当前配置（令牌已打码），附带 <code>client_ip</code></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/logs</code></td><td><code>?limit=</code> <code>?only_error=1</code> <code>?q=</code></td><td>请求日志，最新在前；<code>q</code> 按路径/错误关键字过滤</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/logs/clear</code></td><td>—</td><td>清空请求日志（内存与文件）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/config</code></td><td>JSON：<code>nas_host</code> <code>nas_port</code> <code>nas_scheme</code> <code>api_token</code> 等</td><td>改配置，立即生效</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/auth/status</code></td><td>—</td><td>OAuth 登录是否有效</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/auth/diagnose</code></td><td>—</td><td>登录链路自检（伪终端、session 目录、PATH）</td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/auth/manual</code></td><td>—</td><td>生成 SSH 手动登录命令（兜底）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/auth/start</code></td><td>—</td><td>开始 OAuth，返回授权链接</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/auth/code</code></td><td>JSON：<code>code</code></td><td>提交授权码，完成登录</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/auth/logout</code></td><td>—</td><td>清除登录状态</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/power/reboot</code></td><td>—</td><td><b>重启 NAS</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/power/poweroff</code></td><td>—</td><td><b>关闭 NAS</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/network/ssh</code></td><td>JSON：<code>enable</code>(true/false)</td><td>开关 SSH 服务。<span class="dim">当前固件对"已是目标状态"会回 errno 33555719</span></td></tr>
+</tbody>
+</table>
+
+<h2 id="cmd">6. 通用命令通道</h2>
+<p>没单独封装的能力，走 <code>POST /api/cmd</code>，把参数按数组传给 <code>trim-cli</code>，覆盖全部 200+ 子命令。</p>
+<pre>curl -X POST -H <span style="color:#8fd6a8">"Authorization: Bearer 你的令牌"</span> \
+     -H <span style="color:#8fd6a8">"Content-Type: application/json"</span> \
+     -d <span style="color:#f0c674">'{"args":["file","trash","list","/vol1"]}'</span> \
+     http://192.168.1.23:9932/api/cmd</pre>
+<div class="grid2">
+<div>
+<h3>允许</h3>
+<ul>
+<li>所有只读子命令</li>
+<li>带 <code>--yes</code> 的写命令（由你显式决定）</li>
+</ul>
+</div>
+<div>
+<h3>会被拒绝</h3>
+<ul>
+<li><code>media</code> 影音相关</li>
+<li><code>login</code> / <code>logout</code>（请用 <code>/api/auth/*</code>）</li>
+<li><code>--host</code> <code>--port</code> <code>--scheme</code> <code>--profile</code> 等连接参数
+    —— <b>放在任何位置都会被拦</b>（含 <code>--profile=x</code> 写法）</li>
+<li>含控制字符、超长、空字符串的参数</li>
+<li><code>args</code> 不是字符串数组（如传字符串、含数字、含 null）→ 400</li>
+</ul>
+</div>
+</div>
+<div class="warn">
+  想关掉这个通道（例如只给外部系统固定的几个只读接口）：
+  在应用「设置」里取消勾选「允许自由命令通道」，或
+  <code>POST /api/config {"allow_passthrough": false}</code>。
+</div>
+
+<h2 id="sample">7. 多语言示例</h2>
+
+<h3>curl（Linux / macOS / Git Bash）</h3>
+<pre>TOKEN=<span style="color:#f0c674">"你的令牌"</span>
+BASE=<span style="color:#f0c674">"http://192.168.1.23:9932"</span>
+
+<span class="c"># 读 CPU</span>
+curl -s -H <span style="color:#8fd6a8">"Authorization: Bearer $TOKEN"</span> "$BASE/api/monitor/cpu"
+
+<span class="c"># 建目录</span>
+curl -s -X POST -H <span style="color:#8fd6a8">"Authorization: Bearer $TOKEN"</span> \
+     -H <span style="color:#8fd6a8">"Content-Type: application/json"</span> \
+     -d <span style="color:#f0c674">'{"path":"/vol1/1000/新目录"}'</span> "$BASE/api/file/mkdir"</pre>
+
+<h3>Python</h3>
+<pre><span class="c">import</span> json, urllib.request
+
+TOKEN = <span style="color:#f0c674">"你的令牌"</span>
+BASE  = <span style="color:#f0c674">"http://192.168.1.23:9932"</span>
+
+<span class="c">def</span> api(path, method=<span style="color:#f0c674">"GET"</span>, body=<span style="color:#f0c674">None</span>):
+    data = json.dumps(body).encode() <span class="c">if</span> body <span class="c">else</span> <span style="color:#f0c674">None</span>
+    req = urllib.request.Request(
+        BASE + path, data=data, method=method,
+        headers={<span style="color:#f0c674">"Authorization"</span>: <span style="color:#f0c674">"Bearer "</span> + TOKEN,
+                 <span style="color:#f0c674">"Content-Type"</span>: <span style="color:#f0c674">"application/json"</span>})
+    <span class="c">with</span> urllib.request.urlopen(req, timeout=<span style="color:#f0c674">30</span>) <span class="c">as</span> r:
+        <span class="c">return</span> json.load(r)
+
+cpu = api(<span style="color:#f0c674">"/api/monitor/cpu"</span>)
+<span class="c">print</span>(cpu[<span style="color:#f0c674">"data"</span>][<span style="color:#f0c674">"cpu"</span>][<span style="color:#f0c674">"busy"</span>][<span style="color:#f0c674">"all"</span>], <span style="color:#f0c674">"%"</span>)</pre>
+
+<h3>PowerShell（Windows）</h3>
+<pre><span class="c"># 注意：PowerShell 里 curl 是 Invoke-WebRequest 的别名，要用 curl.exe</span>
+$TOKEN = <span style="color:#f0c674">"你的令牌"</span>
+$H = @{ Authorization = <span style="color:#f0c674">"Bearer $TOKEN"</span> }
+
+Invoke-RestMethod -Uri <span style="color:#f0c674">"http://192.168.1.23:9932/api/system/host-name"</span> -Headers $H</pre>
+
+<h3>JavaScript / Node</h3>
+<pre><span class="c">const</span> res = <span class="c">await</span> fetch(<span style="color:#f0c674">"http://192.168.1.23:9932/api/storage/pools"</span>, {
+  headers: { Authorization: <span style="color:#f0c674">`Bearer ${TOKEN}`</span> }
+});
+<span class="c">const</span> { success, data } = <span class="c">await</span> res.json();</pre>
+
+<div class="tip">
+  现成的样例脚本在应用的 <code>examples/</code> 目录：
+  <code>demo.py</code>（49 项自检，分组打印结果）、<code>curl.sh</code>（30 个 curl 例子，分 7 组）。
+  令牌放 <code>examples/token.txt</code> 一行即可，无需改代码。
+</div>
+
+<h2 id="log">8. 请求日志</h2>
+<p>设置页的「请求日志」卡片会记录每一个发到本应用的 <code>/api/*</code> 请求。</p>
+<table>
+<thead><tr><th style="width:150px">记录内容</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>时间 / 方法 / 接口</td><td>精确到秒；带查询参数的会一并显示，但 <code>token=</code> 会被替换成 <code>***</code>，不会泄露令牌</td></tr>
+<tr><td>状态码</td><td>绿 2xx / 橙 4xx / 红 5xx</td></tr>
+<tr><td>耗时</td><td>毫秒</td></tr>
+<tr><td>来源 IP</td><td>请求的来源地址</td></tr>
+<tr><td>失败原因</td><td>4xx/5xx 时多显示一行，优先取上游 <code>errmsg</code> 原文；<code>exit status 1</code> 这类无意义的会被替换掉</td></tr>
+</tbody>
+</table>
+<div class="note">
+  内存里保留最近 <b>1000 条</b>，同时追加写入 <code>data/requests.log</code>（JSONL 格式，单文件 5MB 后轮转为 <code>.1</code>）。
+  重启应用后会把文件尾部读回内存，页面不会空白。<br>
+  查询日志本身的请求 <code>/api/logs</code> 不记录，避免自激和噪音；静态页面请求也不记录。
+</div>
+
+<h2 id="write">9. 写操作与安全</h2>
+<ul>
+  <li><b>参数缺失一律返回 400</b>，并明确指出缺哪个字段，不会执行任何动作。</li>
+  <li><b>密码错误返回 403</b>，与参数错误（400）区分开</li>
+  <li><b>危险操作需要密码预校验</b>：卸载存储、停止存储池、格式化等要传 <code>password</code>（NAS 登录密码）。</li>
+  <li><b>写操作不会自动重试</b>，避免副作用执行两次；失败请自行判断后决定是否重发。</li>
+  <li><b>不用传 <code>--yes</code></b>——命令行的写操作确认由本应用代你处理，调用方只管传业务参数。</li>
+  <li><b>删除类接口会先核对目标</b>：<code>file/rm</code> 和 <code>file/share/del</code> 对不存在的目标返回 404，不会出现"接口说删了、其实什么都没发生"的假成功。</li>
+  <li><b>建议先用只读接口确认目标</b>：比如 <code>/api/storage/pools</code> 看清 uuid，再调 <code>/api/storage/mount</code>。</li>
+  <li><b>IP 白名单</b>（设置页可配）：留空即不限制；填了之后只有名单内的来源能访问，其余一律 <code>403</code>。
+    支持单个 IP 和 CIDR 网段，一行一个。见下方说明。</li>
+</ul>
+<h3>IP 白名单</h3>
+<table>
+<thead><tr><th style="width:190px">项</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>默认状态</td><td><b>关闭</b>（配置里是空数组 <code>ip_allowlist: []</code>），任何来源都能访问</td></tr>
+<tr><td>配置方式</td><td>设置页「IP 白名单」，一行一个；也可以 <code>POST /api/config {"ip_allowlist":["1.2.3.4","192.168.1.0/24"]}</code></td></tr>
+<tr><td>支持的写法</td><td>单个 IPv4/IPv6，如 <code>192.168.1.23</code>；或网段，如 <code>192.168.1.0/24</code></td></tr>
+<tr><td>拒绝时</td><td>返回 <code>403</code>，错误信息里带上被拒的来源 IP</td></tr>
+<tr><td>本机</td><td><b>回环地址始终放行</b>，所以在飞牛桌面里打开永远不会被自己的白名单锁住</td></tr>
+<tr><td>防自锁</td><td>保存时如果新名单不包含你当前访问的 IP，会被拒绝保存并提示原因</td></tr>
+<tr><td>来源判定</td><td>取 TCP 连接的真实来源地址，<b>不信任 <code>X-Forwarded-For</code></b>。若前面加了反向代理，请求来源会变成代理的地址，白名单将失效——这种部署方式请改用令牌控制访问</td></tr>
+</tbody>
+</table>
+
+<div class="danger">
+  <b>这几个接口会真的改变系统状态，调用前请三思：</b><br>
+  <code>/api/storage/format</code>（格式化，数据不可恢复）、<code>/api/user/del</code>（删用户）、
+  <code>/api/app/uninstall</code>（卸载应用）、<code>/api/power/reboot</code>、<code>/api/power/poweroff</code>、
+  <code>/api/network/ssh</code>（关掉 SSH 可能让你自己连不上）。
+</div>
+
+
+<h2 id="extra">11. 扩展管理接口</h2>
+<p>1.4.0 把 trim-cli 剩余的管理能力也接了出来。高风险操作必须额外传 <code>"confirm": true</code>，否则返回 400。</p>
+
+<h3>文件</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:230px">路径</th><th>参数</th></tr></thead>
+<tbody>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/compress</code></td><td><code>output</code> <code>sources[]</code>；可选 <code>level</code> <code>password</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/extract</code></td><td><code>archive</code> <code>output_dir</code>；可选 <code>overwrite</code> <code>password</code> <code>charset</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/chown</code></td><td><code>path</code> <code>uid</code>；可选 <code>sub</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/acl/set</code></td><td><code>path</code> <code>permset</code>（对象数组）；可选 <code>sub</code></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/trash/search</code></td><td><code>key</code>；可选 <code>uid</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/trash/restore</code></td><td><code>path</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/trash/clear</code></td><td>可选 <code>path</code>（不传清空全部）；<b>需 confirm</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/fav/add</code> · <code>/del</code></td><td><code>path</code></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/team/list</code></td><td>—</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/team/trash-restore</code></td><td><code>paths[]</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/team/trash-clear</code></td><td><code>vol</code> <code>teamdir</code>；<b>需 confirm</b></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/download-url</code></td><td><code>path</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/cancel</code></td><td><code>task_id</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/check-upload</code></td><td><code>path</code> <code>size</code>；可选 <code>overwrite</code>（<b>replace / skip / rename</b>，也接受 true/false）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/upload</code></td><td><code>remote_dir</code> <code>local_file</code>（<b>NAS 上已存在的路径</b>）；可选 <code>overwrite</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/file/trimacl/conv</code></td><td><code>vol</code>；可选 <code>csv_path</code></td></tr>
+<tr><td><span class="m get">GET</span></td><td><code>/api/file/trimacl/report</code></td><td><code>vol</code> <code>csv_path</code></td></tr>
+</tbody></table>
+
+<h3>存储（全部需 confirm）</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:230px">路径</th><th>参数</th></tr></thead>
+<tbody>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/disk-mount</code> · <code>disk-umount</code></td><td><code>disk</code>（设备名，如 sdb）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/create</code></td><td><code>level</code> <code>disks[]</code>；可选 <code>comment</code> <code>fstype</code> <code>check_disk</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/add-disk</code> · <code>remove-disk</code></td><td><code>uuid</code> <code>disks[]</code> <code>password</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/replace-disk</code></td><td><code>uuid</code> <code>disks[]</code> <code>new_disks[]</code> <code>password</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/storage/resize</code></td><td><code>uuid</code>；可选 <code>disks[]</code> <code>vd_name</code> <code>level</code> <code>password</code></td></tr>
+</tbody></table>
+
+<h3>Docker / 日志 / 下载</h3>
+<table>
+<thead><tr><th style="width:60px">方法</th><th style="width:230px">路径</th><th>参数</th></tr></thead>
+<tbody>
+<tr><td><span class="m post">POST</span></td><td><code>/api/docker/image/rm</code></td><td><code>ref</code>；可选 <code>force</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/docker/container/create</code></td><td><code>image</code>；可选 <code>name</code> <code>start</code> <code>restart</code> <code>memory</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/docker/container/rm</code></td><td><code>id</code>；可选 <code>force</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/logger/clear</code></td><td><code>level</code> <code>module</code>；<b>需 confirm</b></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/logger/debuglog/start</code></td><td><code>output_dir</code>；可选 <code>srv_type</code>（<b>0 / 1 / 2</b>）</td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/logger/debuglog/stop</code></td><td><code>task_id</code></td></tr>
+<tr><td><span class="m post">POST</span></td><td><code>/api/download/add-path</code></td><td><code>path</code> <code>save_dir</code></td></tr>
+</tbody></table>
+
+<div class="warn">
+  <b>卷号写法：</b><code>vol</code> 参数传 <code>1</code>、<code>vol1</code>、<code>/vol1</code> 都可以，网关会统一成 <code>/vol1</code> 再传给命令行。
+</div>
+
+<h2 id="faq">10. 已知限制</h2>
+<table>
+<thead><tr><th style="width:230px">现象</th><th>原因与处理</th></tr></thead>
+<tbody>
+<tr><td><code>file/search</code> 部分关键字超时报错</td><td>飞牛搜索本身是重查询。实测 <code>key=test</code> 约 7 秒/5010 条可成功，
+但 <code>backup</code>、<code>minecraft</code> 这类会在大约 11 秒时被上游断开，重试也无效。
+<b>建议用更精确的关键字，或加 <code>paths</code> 收窄范围</b>（实测 <code>key=test</code> 不带 paths 15.3 秒，带 <code>paths=/vol1/1000</code> 只要 1.5 秒）。</td></tr>
+<tr><td><code>system/boot-on-power</code> 等返回 errno 100060031</td><td><code>this feature is supported only on official hardware</code>。
+自装机不支持，属正常。</td></tr>
+<tr><td><code>monitor/battery</code> 报错</td><td>台式机没有电池，属正常。</td></tr>
+<tr><td><code>monitor/proc-info</code> 报 errno 100030001</td><td>部分固件版本未开放该端点，换真实 pid 也不行。</td></tr>
+<tr><td><code>file/share/info</code> 报 errno 4101</td><td>该路径不是共享目录（返回 404，响应里不带 errno 字段）。先用 <code>file/share/list</code> 拿真实共享路径。</td></tr>
+<tr><td><code>baidu/*</code> 返回 <b>502</b></td><td>未安装百度网盘插件，上游代理网关直接 502。装好插件并登录后可用。</td></tr>
+<tr><td><code>download/info</code>、<code>download/files</code> 返回 500</td><td>上游 <code>downloadcenter.task.getInfo</code> 和 <code>/ogh/ac/w</code> 代理本身失败，与 <code>download/ls</code>、<code>download/stat</code> 无关。属上游限制，换任务 id 也一样。</td></tr>
+<tr><td><code>file/usage?vol=</code> 传不存在的卷号</td><td>上游返回全零分类而不是报错，属上游行为。请先用 <code>/api/system/vols</code> 确认卷号。</td></tr>
+<tr><td><code>network/ssh</code> 返回 errno 33555719</td><td>SSH 已经是目标状态时，上游会把它当错误返回。开关参数字段本身已正确透传。</td></tr>
+<tr><td>偶发 <code>failed to call HTTP proxy</code></td><td>底层代理瞬时抖动。只读接口已自动重试一次；写操作需自行重试。</td></tr>
+</tbody>
+</table>
+
+<div class="card" style="margin-top:26px">
+  <b>还有问题？</b> 打开网页控制台的「接口调试」页，可以直接选接口执行并看原始返回；
+  或在「登录授权」页点「诊断」，会输出 trim-cli 路径、伪终端可用性、session 目录可写性等自检信息。
+</div>
+
+</main>
+</div>
+</body>
+</html>

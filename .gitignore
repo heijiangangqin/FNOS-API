@@ -1,12 +1,16 @@
-# IDE缓存
-.idea/
-.vscode/
-*.log
-# 依赖文件夹
-node_modules/
-venv/
-# 编译产物
+# 构建产物
 dist/
-build/
-# 系统文件
+_build/
+*.fpk
+src/_*
+
+# 测试与临时产物
+_shots/
+_*.json
+_*.py
+*.log
+app.log
+
+# 系统
 .DS_Store
+Thumbs.db
